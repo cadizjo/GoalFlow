@@ -1,12 +1,11 @@
-/*
-  Warnings:
+-- CreateTable
+CREATE TABLE "User" (
+    "id" SERIAL NOT NULL,
+    "email" TEXT NOT NULL,
+    "name" TEXT,
 
-  - You are about to drop the column `createdAt` on the `User` table. All the data in the column will be lost.
-
-*/
--- AlterTable
-ALTER TABLE "User" DROP COLUMN "createdAt",
-ADD COLUMN     "name" TEXT;
+    CONSTRAINT "User_pkey" PRIMARY KEY ("id")
+);
 
 -- CreateTable
 CREATE TABLE "Post" (
@@ -18,6 +17,9 @@ CREATE TABLE "Post" (
 
     CONSTRAINT "Post_pkey" PRIMARY KEY ("id")
 );
+
+-- CreateIndex
+CREATE UNIQUE INDEX "User_email_key" ON "User"("email");
 
 -- AddForeignKey
 ALTER TABLE "Post" ADD CONSTRAINT "Post_authorId_fkey" FOREIGN KEY ("authorId") REFERENCES "User"("id") ON DELETE SET NULL ON UPDATE CASCADE;
