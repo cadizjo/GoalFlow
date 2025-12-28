@@ -3,8 +3,13 @@ services:
   postgres:
     image: postgres:15
     environment:
-      POSTGRES_USER: goalflow
-      POSTGRES_PASSWORD: goalflow
-      POSTGRES_DB: goalflow
+      POSTGRES_USER: "${DB_USER}"
+      POSTGRES_PASSWORD: "${DB_PASSWORD}"
+      POSTGRES_DB: "${DB_NAME}"
     ports:
-      - "5432:5432"
+      - "${DB_PORT}:5432"
+#     volumes:
+#       - pgdata:/var/lib/postgresql/data
+
+# volumes:
+#   pgdata:
