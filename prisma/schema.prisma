@@ -14,18 +14,192 @@ datasource db {
   provider = "postgresql"
 }
 
-model User {
-  id    Int     @default(autoincrement()) @id
-  email String  @unique
-  name  String?
-  posts Post[]
+//////////////////////
+// ENUMS
+//////////////////////
+
+enum GoalStatus {
+  active
+  completed
+  at_risk
 }
 
-model Post {
-  id        Int      @default(autoincrement()) @id
-  title     String
-  content   String?
-  published Boolean? @default(false)
-  author    User?    @relation(fields: [authorId], references: [id])
-  authorId  Int?
+enum TaskStatus {
+  todo
+  in_progress
+  done
+  blocked
+}
+
+enum ScheduleSource {
+  auto
+  manual
+  user
+}
+
+enum ScheduleStatus {
+  scheduled
+  completed
+  cancelled
+}
+
+//////////////////////
+// USERS & AUTH
+//////////////////////
+
+model User {
+  id                String   @id @default(uuid())
+  email             String   @unique
+  name              String?
+  password_hash     String?
+  timezone          String?
+  google_credentials Json?
+  preferences       Json?
+
+  goals             Goal[]
+  schedule_blocks   ScheduleBlock[]
+  events            EventLog[]
+
+  created_at        DateTime @default(now())
+  updated_at        DateTime @updatedAt
+}
+
+//////////////////////
+// GOALS & PLANNING
+//////////////////////
+
+model Goal {
+  id          String     @id @default(uuid())
+  user_id     String
+  user        User       @relation(fields: [user_id], references: [id])
+
+  title       String
+  description String?
+  deadline    DateTime
+  category    String?
+  status      GoalStatus @default(active)
+
+  metadata    Json?
+
+  milestones  Milestone[]
+  tasks       Task[]
+
+  created_at  DateTime @default(now())
+  updated_at  DateTime @updatedAt
+
+  @@index([user_id])
+}
+
+model Milestone {
+  id         String   @id @default(uuid())
+  goal_id    String
+  goal       Goal     @relation(fields: [goal_id], references: [id])
+
+  title      String
+  sequence   Int
+
+  tasks      Task[]
+
+  created_at DateTime @default(now())
+
+  @@index([goal_id])
+}
+
+//////////////////////
+// TASKS & DEPENDENCIES
+//////////////////////
+
+model Task {
+  id                 String   @id @default(uuid())
+  goal_id            String
+  goal               Goal     @relation(fields: [goal_id], references: [id])
+
+  milestone_id       String?
+  milestone          Milestone? @relation(fields: [milestone_id], references: [id])
+
+  /// Parent task for hierarchical subtasks (tree structure)
+  parentTaskId        String?
+  parentTask          Task?     @relation("TaskHierarchy", fields: [parentTaskId], references: [id])
+
+  /// Subtasks belonging to this task
+  subtasks            Task[]    @relation("TaskHierarchy")
+
+  description        String
+  estimated_minutes  Int
+  estimated_confidence Float?
+  actual_minutes     Int?
+  priority_score     Float
+  status              TaskStatus @default(todo)
+
+  llm_metadata       Json?
+
+  /// Dependency edges where THIS task depends on others
+  /// "Give me all TaskDependency rows where this task appears in taskId"
+  dependencies        TaskDependency[] @relation("TaskDependsOn")
+
+  /// Dependency edges where OTHER tasks depend on this one
+  /// "Give me all TaskDependency rows where this task appears in dependsOnTaskId"
+  dependents          TaskDependency[] @relation("TaskRequiredBy")
+
+  schedule_blocks    ScheduleBlock[]
+
+  created_at         DateTime @default(now())
+  updated_at         DateTime @updatedAt
+
+  @@index([goal_id])
+  @@index([milestone_id])
+}
+
+model TaskDependency {
+  /// Task that is blocked
+  task_id              String
+  task                 Task   @relation("TaskDependsOn", fields: [task_id], references: [id])
+
+  /// Task that must be completed first
+  depends_on_task_id     String
+  depends_on_task       Task   @relation("TaskRequiredBy", fields: [depends_on_task_id], references: [id])
+
+  @@id([task_id, depends_on_task_id]) // composite PK prevents duplicates
+}
+
+//////////////////////
+// SCHEDULING
+//////////////////////
+
+model ScheduleBlock {
+  id          String          @id @default(uuid())
+  user_id     String
+  user        User            @relation(fields: [user_id], references: [id])
+
+  task_id     String
+  task        Task            @relation(fields: [task_id], references: [id])
+
+  start_time  DateTime
+  end_time    DateTime
+
+  source      ScheduleSource
+  status      ScheduleStatus
+
+  created_at  DateTime @default(now())
+  updated_at  DateTime @updatedAt
+
+  @@index([user_id, start_time])
+}
+
+//////////////////////
+// EVENTS / AUDIT LOG
+//////////////////////
+
+model EventLog {
+  id          String   @id @default(uuid())
+  user_id     String
+  user        User     @relation(fields: [user_id], references: [id])
+
+  type        String
+  payload     Json?
+
+  created_at  DateTime @default(now())
+
+  @@index([user_id])
+  @@index([type])
 }

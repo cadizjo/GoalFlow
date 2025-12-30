@@ -52,7 +52,12 @@ export const AnyNull = runtime.AnyNull
 
 export const ModelName = {
   User: 'User',
-  Post: 'Post'
+  Goal: 'Goal',
+  Milestone: 'Milestone',
+  Task: 'Task',
+  TaskDependency: 'TaskDependency',
+  ScheduleBlock: 'ScheduleBlock',
+  EventLog: 'EventLog'
 } as const
 
 export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -74,21 +79,96 @@ export type TransactionIsolationLevel = (typeof TransactionIsolationLevel)[keyof
 export const UserScalarFieldEnum = {
   id: 'id',
   email: 'email',
-  name: 'name'
+  name: 'name',
+  password_hash: 'password_hash',
+  timezone: 'timezone',
+  google_credentials: 'google_credentials',
+  preferences: 'preferences',
+  created_at: 'created_at',
+  updated_at: 'updated_at'
 } as const
 
 export type UserScalarFieldEnum = (typeof UserScalarFieldEnum)[keyof typeof UserScalarFieldEnum]
 
 
-export const PostScalarFieldEnum = {
+export const GoalScalarFieldEnum = {
   id: 'id',
+  user_id: 'user_id',
   title: 'title',
-  content: 'content',
-  published: 'published',
-  authorId: 'authorId'
+  description: 'description',
+  deadline: 'deadline',
+  category: 'category',
+  status: 'status',
+  metadata: 'metadata',
+  created_at: 'created_at',
+  updated_at: 'updated_at'
 } as const
 
-export type PostScalarFieldEnum = (typeof PostScalarFieldEnum)[keyof typeof PostScalarFieldEnum]
+export type GoalScalarFieldEnum = (typeof GoalScalarFieldEnum)[keyof typeof GoalScalarFieldEnum]
+
+
+export const MilestoneScalarFieldEnum = {
+  id: 'id',
+  goal_id: 'goal_id',
+  title: 'title',
+  sequence: 'sequence',
+  created_at: 'created_at'
+} as const
+
+export type MilestoneScalarFieldEnum = (typeof MilestoneScalarFieldEnum)[keyof typeof MilestoneScalarFieldEnum]
+
+
+export const TaskScalarFieldEnum = {
+  id: 'id',
+  goal_id: 'goal_id',
+  milestone_id: 'milestone_id',
+  parentTaskId: 'parentTaskId',
+  description: 'description',
+  estimated_minutes: 'estimated_minutes',
+  estimated_confidence: 'estimated_confidence',
+  actual_minutes: 'actual_minutes',
+  priority_score: 'priority_score',
+  status: 'status',
+  llm_metadata: 'llm_metadata',
+  created_at: 'created_at',
+  updated_at: 'updated_at'
+} as const
+
+export type TaskScalarFieldEnum = (typeof TaskScalarFieldEnum)[keyof typeof TaskScalarFieldEnum]
+
+
+export const TaskDependencyScalarFieldEnum = {
+  task_id: 'task_id',
+  depends_on_task_id: 'depends_on_task_id'
+} as const
+
+export type TaskDependencyScalarFieldEnum = (typeof TaskDependencyScalarFieldEnum)[keyof typeof TaskDependencyScalarFieldEnum]
+
+
+export const ScheduleBlockScalarFieldEnum = {
+  id: 'id',
+  user_id: 'user_id',
+  task_id: 'task_id',
+  start_time: 'start_time',
+  end_time: 'end_time',
+  source: 'source',
+  status: 'status',
+  created_at: 'created_at',
+  updated_at: 'updated_at'
+} as const
+
+export type ScheduleBlockScalarFieldEnum = (typeof ScheduleBlockScalarFieldEnum)[keyof typeof ScheduleBlockScalarFieldEnum]
+
+
+export const EventLogScalarFieldEnum = {
+  id: 'id',
+  user_id: 'user_id',
+  type: 'type',
+  payload: 'payload',
+  created_at: 'created_at'
+} as const
+
+export type EventLogScalarFieldEnum = (typeof EventLogScalarFieldEnum)[keyof typeof EventLogScalarFieldEnum]
 
 
 export const SortOrder = {
@@ -99,12 +179,29 @@ export const SortOrder = {
 export type SortOrder = (typeof SortOrder)[keyof typeof SortOrder]
 
 
+export const NullableJsonNullValueInput = {
+  DbNull: 'DbNull',
+  JsonNull: 'JsonNull'
+} as const
+
+export type NullableJsonNullValueInput = (typeof NullableJsonNullValueInput)[keyof typeof NullableJsonNullValueInput]
+
+
 export const QueryMode = {
   default: 'default',
   insensitive: 'insensitive'
 } as const
 
 export type QueryMode = (typeof QueryMode)[keyof typeof QueryMode]
+
+
+export const JsonNullValueFilter = {
+  DbNull: 'DbNull',
+  JsonNull: 'JsonNull',
+  AnyNull: 'AnyNull'
+} as const
+
+export type JsonNullValueFilter = (typeof JsonNullValueFilter)[keyof typeof JsonNullValueFilter]
 
 
 export const NullsOrder = {

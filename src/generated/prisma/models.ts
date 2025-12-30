@@ -9,5 +9,10 @@
  * 🟢 You can import this file directly.
  */
 export type * from './models/User.js'
-export type * from './models/Post.js'
+export type * from './models/Goal.js'
+export type * from './models/Milestone.js'
+export type * from './models/Task.js'
+export type * from './models/TaskDependency.js'
+export type * from './models/ScheduleBlock.js'
+export type * from './models/EventLog.js'
 export type * from './commonInputTypes.js'

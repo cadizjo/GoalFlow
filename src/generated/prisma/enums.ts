@@ -9,7 +9,38 @@
 * 🟢 You can import this file directly.
 */
 
+export const GoalStatus = {
+  active: 'active',
+  completed: 'completed',
+  at_risk: 'at_risk'
+} as const
+
+export type GoalStatus = (typeof GoalStatus)[keyof typeof GoalStatus]
 
 
-// This file is empty because there are no enums in the schema.
-export {}
+export const TaskStatus = {
+  todo: 'todo',
+  in_progress: 'in_progress',
+  done: 'done',
+  blocked: 'blocked'
+} as const
+
+export type TaskStatus = (typeof TaskStatus)[keyof typeof TaskStatus]
+
+
+export const ScheduleSource = {
+  auto: 'auto',
+  manual: 'manual',
+  user: 'user'
+} as const
+
+export type ScheduleSource = (typeof ScheduleSource)[keyof typeof ScheduleSource]
+
+
+export const ScheduleStatus = {
+  scheduled: 'scheduled',
+  completed: 'completed',
+  cancelled: 'cancelled'
+} as const
+
+export type ScheduleStatus = (typeof ScheduleStatus)[keyof typeof ScheduleStatus]
