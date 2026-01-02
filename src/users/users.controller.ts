@@ -1,16 +1,37 @@
-// src/users/users.controller.ts
-import { Controller, Post, Body } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Patch,
+  Body,
+  UseGuards,
+  Req,
+} from '@nestjs/common';
 import { UsersService } from './users.service';
-import { User } from 'src/generated/prisma/client';
+import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 
 @Controller('users')
+@UseGuards(JwtAuthGuard) // Protect all routes in this controller with JWT authentication
 export class UsersController {
-  constructor(private readonly usersService: UsersService) {}
+  constructor(private usersService: UsersService) {}
 
-  @Post()
-  signupUser(
-    @Body() userData: { name?: string; email: string },
-  ): Promise<User> {
-    return this.usersService.createUser(userData);
+  @Get('me')
+  getMe(@Req() req) {
+    return this.usersService.user({ id: req.user.userId });
+  }
+
+  @Patch('me')
+  updateMe(
+    @Req() req,
+    @Body()
+    data: {
+      name?: string;
+      timezone?: string;
+      preferences?: Record<string, any>;
+    },
+  ) {
+    return this.usersService.updateUser({
+      where: { id: req.user.userId },
+      data
+    });
   }
 }
