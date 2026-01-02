@@ -5,9 +5,11 @@ import {
   Body,
   UseGuards,
   Req,
+  BadRequestException,
 } from '@nestjs/common';
 import { UsersService } from './users.service';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
+import { UpdateUserDto } from './dto/update-user.dto';
 
 @Controller('users')
 @UseGuards(JwtAuthGuard) // Protect all routes in this controller with JWT authentication
@@ -22,16 +24,15 @@ export class UsersController {
   @Patch('me')
   updateMe(
     @Req() req,
-    @Body()
-    data: {
-      name?: string;
-      timezone?: string;
-      preferences?: Record<string, any>;
-    },
+    @Body() dto: UpdateUserDto,
   ) {
+    if (Object.keys(dto).length === 0) { // Check if any fields are provided for update
+      throw new BadRequestException('No fields provided for update');
+    }
+
     return this.usersService.updateUser({
       where: { id: req.user.userId },
-      data
+      data: dto
     });
   }
 }

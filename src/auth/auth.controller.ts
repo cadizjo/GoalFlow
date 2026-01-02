@@ -1,6 +1,8 @@
 import { Controller, Post, Body, Get, UseGuards, Req } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { JwtAuthGuard } from './jwt-auth.guard';
+import { SignupDto } from './dto/signup.dto';
+import { LoginDto } from './dto/login.dto';
 
 @Controller('auth')
 export class AuthController {
@@ -10,16 +12,16 @@ export class AuthController {
 
   @Post('signup')
   signup(
-    @Body() body: { email: string; password: string; name?: string }, // Extract email, password, and optional name from request body
+    @Body() dto: SignupDto, // Extract email, password, and optional name from request body
   ) {
-    return this.authService.signup(body.email, body.password, body.name);
+    return this.authService.signup(dto.email, dto.password, dto.name);
   }
 
   @Post('login')
   login(
-    @Body() body: { email: string; password: string }, // Extract email and password from request body
+    @Body() dto: LoginDto, // Extract email and password from request body
   ) {
-    return this.authService.login(body.email, body.password);
+    return this.authService.login(dto.email, dto.password);
   }
 
   // Protected route to get current user info
