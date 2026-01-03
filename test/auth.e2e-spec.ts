@@ -36,7 +36,7 @@ describe('Auth (e2e)', () => {
       .send(user)
       .expect(201);
 
-    expect(res.body).toHaveProperty('accessToken');
+    expect(res.body).toHaveProperty('access_token');
   });
 
   // Test user login
@@ -49,7 +49,7 @@ describe('Auth (e2e)', () => {
       })
       .expect(201);
 
-    expect(res.body).toHaveProperty('accessToken');
+    expect(res.body).toHaveProperty('access_token');
   });
 
   // Test login with invalid password

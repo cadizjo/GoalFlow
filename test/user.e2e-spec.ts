@@ -34,7 +34,7 @@ describe('Users (e2e)', () => {
       });
 
     // Save the JWT token for authenticated requests
-    token = res.body.accessToken;
+    token = res.body.access_token;
   });
 
   // Close the NestJS application after all tests
