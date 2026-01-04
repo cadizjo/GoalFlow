@@ -20,8 +20,6 @@ describe('Milestones (e2e)', () => {
     app = moduleRef.createNestApplication();
     await app.init();
 
-    await cleanDb();
-
     // Create user
     await request(app.getHttpServer())
       .post('/auth/signup')
