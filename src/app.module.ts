@@ -6,6 +6,7 @@ import { ConfigModule } from '@nestjs/config';
 import { AuthModule } from './auth/auth.module';
 import { GoalsModule } from './goals/goals.module';
 import { MilestonesModule } from './milestones/milestones.module';
+import { TasksModule } from './tasks/tasks.module';
 
 @Module({
   imports: [
@@ -14,7 +15,8 @@ import { MilestonesModule } from './milestones/milestones.module';
     AuthModule,
     UsersModule,
     GoalsModule,
-    MilestonesModule
+    MilestonesModule,
+    TasksModule,
   ],
 })
 export class AppModule {}
