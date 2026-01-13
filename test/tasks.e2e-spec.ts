@@ -76,7 +76,7 @@ describe('Tasks (e2e)', () => {
     expect(res.body.description).toBe('First task');
     expect(res.body.estimated_minutes).toBe(30);
     expect(res.body.priority_score).toBe(1);   
-    expect(res.body.status).toBe('pending');
+    expect(res.body.status).toBe('todo');
   });
 
   it('GET /tasks/:id — fetches task', async () => {
