@@ -6,6 +6,8 @@ import { PrismaClient } from '@prisma/client';
 const prisma = new PrismaClient();
 
 export async function cleanDb() {
+  console.log('DATABASE_URL:', process.env.DATABASE_URL);
+
   await prisma.taskDependency.deleteMany();
   await prisma.task.deleteMany();
   await prisma.milestone.deleteMany();
