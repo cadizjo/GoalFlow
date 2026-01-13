@@ -121,6 +121,7 @@ model Task {
   parentTask          Task?     @relation("TaskHierarchy", fields: [parentTaskId], references: [id])
 
   /// Subtasks belonging to this task
+  /// "Give me all Task rows where this task appears in parentTaskId"
   subtasks            Task[]    @relation("TaskHierarchy")
 
   description        String
