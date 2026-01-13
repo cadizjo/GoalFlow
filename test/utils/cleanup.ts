@@ -1,12 +1,8 @@
-import * as dotenv from 'dotenv';
-dotenv.config({ path: '.env.test' }); 
+import { INestApplication } from '@nestjs/common';
+import { PrismaService } from '../../src/prisma/prisma.service';
 
-import { PrismaClient } from '@prisma/client';
-
-const prisma = new PrismaClient();
-
-export async function cleanDb() {
-  console.log('DATABASE_URL:', process.env.DATABASE_URL);
+export async function cleanDb(app: INestApplication) {
+  const prisma = app.get(PrismaService);
 
   await prisma.taskDependency.deleteMany();
   await prisma.task.deleteMany();

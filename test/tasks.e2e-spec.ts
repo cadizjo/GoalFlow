@@ -22,7 +22,7 @@ describe('Tasks (e2e)', () => {
   });
 
   beforeEach(async () => {
-    await cleanDb();
+    await cleanDb(app);
 
     // Signup
     await request(app.getHttpServer())
