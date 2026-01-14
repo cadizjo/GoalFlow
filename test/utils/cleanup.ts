@@ -7,6 +7,8 @@ export async function cleanDb(app: INestApplication) {
   const prisma = app.get(PrismaService);
 
   // Delete data in proper order to avoid foreign key constraints
+  await prisma.eventLog.deleteMany();
+  await prisma.scheduleBlock.deleteMany();
   await prisma.taskDependency.deleteMany();
   await prisma.task.deleteMany();
   await prisma.milestone.deleteMany();
