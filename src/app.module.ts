@@ -7,6 +7,8 @@ import { AuthModule } from './auth/auth.module';
 import { GoalsModule } from './goals/goals.module';
 import { MilestonesModule } from './milestones/milestones.module';
 import { TasksModule } from './tasks/tasks.module';
+import { ScheduleBlocksModule } from './scheduling/scheduling.module';
+import { EventLogModule } from './event-log/event-log.module';
 
 @Module({
   imports: [
@@ -17,6 +19,8 @@ import { TasksModule } from './tasks/tasks.module';
     GoalsModule,
     MilestonesModule,
     TasksModule,
+    ScheduleBlocksModule,
+    EventLogModule,
   ],
 })
 export class AppModule {}
