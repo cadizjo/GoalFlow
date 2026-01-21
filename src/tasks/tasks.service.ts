@@ -4,9 +4,16 @@ import {
   BadRequestException,
   NotFoundException,
 } from '@nestjs/common';
-import { TasksRepository } from './tasks.repo';
+import {
+  assertValidTaskStatusTransition,
+  assertTaskCanBeCompleted,
+  assertValidDependency,
+} from './tasks.invariants';
 import { CreateTaskDto } from './dto/create-task.dto';
 import { UpdateTaskDto } from './dto/update-task.dto';
+import { TasksRepository } from './tasks.repo';
+import { EventLogService } from '../event-log/event-log.service';
+import { handleInvariant } from '../common/errors/invariant-handler';
 
 @Injectable()
 export class TasksService {

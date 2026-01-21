@@ -1,5 +1,5 @@
 import { TaskStatus } from '@prisma/client'
-import { InvariantViolation } from '../common/errors/invariant-violation.error'
+import { InvariantViolation } from '../common/errors/invariant-violation'
 
 /**
  * Task completion invariants
