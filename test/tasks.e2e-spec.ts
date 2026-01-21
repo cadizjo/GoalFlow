@@ -161,7 +161,7 @@ describe('Tasks (e2e)', () => {
       .post(`/tasks/${taskId}/complete`)
       .set('Authorization', `Bearer ${token}`)
       .send({
-        actualMinutes: 50,
+        actual_minutes: 50,
       })
       .expect(400);
   });
@@ -208,7 +208,7 @@ describe('Tasks (e2e)', () => {
       .post(`/tasks/${dependencyTaskId}/complete`)
       .set('Authorization', `Bearer ${token}`)
       .send({
-        actualMinutes: 10,
+        actual_minutes: 10,
       })
       .expect(201);
 
@@ -217,7 +217,7 @@ describe('Tasks (e2e)', () => {
       .post(`/tasks/${taskId}/complete`)
       .set('Authorization', `Bearer ${token}`)
       .send({
-        actualMinutes: 50,
+        actual_minutes: 50,
       })
       .expect(201);
 

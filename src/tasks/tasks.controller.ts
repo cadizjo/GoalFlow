@@ -14,6 +14,7 @@ import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { CreateTaskDto } from './dto/create-task.dto';
 import { UpdateTaskDto } from './dto/update-task.dto';
 import { AddDependencyDto } from './dto/add-dependency.dto';
+import { CompleteTaskDto } from './dto/complete-task.dto';
 
 @UseGuards(JwtAuthGuard)
 @Controller('tasks')
@@ -49,12 +50,12 @@ export class TasksController {
   complete(
     @Req() req,
     @Param('id') id: string,
-    @Body() body: { actualMinutes: number }, // receive actualMinutes in the body
+    @Body() dto: CompleteTaskDto,
   ) {
     return this.tasksService.complete(
       req.user.userId,
       id,
-      body.actualMinutes,
+      dto.actual_minutes,
     )
   }
 

@@ -27,7 +27,7 @@ export class TasksService {
     const ownsGoal = await this.repo.goalOwnedByUser(dto.goal_id, userId);
     if (!ownsGoal) throw new ForbiddenException();
 
-    const task = this.repo.create(dto);
+    const task = await this.repo.create(dto);
 
     // Log the task creation event
     await this.eventLog.log(userId, 'task.created', {
@@ -73,11 +73,11 @@ export class TasksService {
     }
 
     // Proceed with the update if all checks pass
-    const updated = this.repo.update(taskId, dto);
+    const updated = await this.repo.update(taskId, dto);
 
     // Log the task update event
     await this.eventLog.log(userId, 'task.updated', {
-      taskId,
+      task_id: taskId,
       changes: dto,
     })
 
@@ -92,11 +92,11 @@ export class TasksService {
 
     // First delete all dependencies related to the task to maintain data integrity
     await this.repo.deleteAllDependencies(taskId);
-    return this.repo.delete(taskId);
+    await this.repo.delete(taskId);
 
     // Log the task deletion event
     await this.eventLog.log(userId, 'task.deleted', {
-      taskId,
+      task_id: taskId,
     })
   }
 
@@ -133,8 +133,8 @@ export class TasksService {
 
     // Log the task completion event
     await this.eventLog.log(userId, 'task.completed', {
-      taskId,
-      actualMinutes,
+      task_id: taskId,
+      actual_minutes: actualMinutes,
     })
 
     return completed
@@ -169,8 +169,8 @@ export class TasksService {
 
     // Log the dependency addition event
     await this.eventLog.log(userId, 'task.dependency_added', {
-      taskId,
-      dependsOnTaskId,
+      task_id: taskId,
+      depends_on_task_id: dependsOnTaskId,
     })
 
     return dep
@@ -183,17 +183,20 @@ export class TasksService {
     dependsOnTaskId: string,
   ) {
 
-    // Verify ownership of the task
-    const task = await this.getById(userId, taskId);
-    if (!task) throw new NotFoundException();
+    // Verify ownership of both tasks
+    const task = await this.getById(userId, taskId)
+    if (!task) throw new NotFoundException()
+
+    const dependencyTask = await this.getById(userId, dependsOnTaskId)
+    if (!dependencyTask) throw new NotFoundException()
 
     // Remove the dependency
     await this.repo.removeDependency(taskId, dependsOnTaskId)
 
     // Log the dependency removal event
     await this.eventLog.log(userId, 'task.dependency_removed', {
-      taskId,
-      dependsOnTaskId,
+      task_id: taskId,
+      depends_on_task_id: dependsOnTaskId,
     })
   }
 }

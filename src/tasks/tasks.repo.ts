@@ -1,6 +1,8 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { Prisma, Task } from '@prisma/client';
+import { CreateTaskDto } from './dto/create-task.dto';
+import { UpdateTaskDto } from './dto/update-task.dto';
 
 // Repository for task-related database operations
 @Injectable()
@@ -8,7 +10,7 @@ export class TasksRepository {
   constructor(private prisma: PrismaService) {}
 
   // Create a new task
-  create(data: Prisma.TaskCreateInput): Promise<Task> {
+  create(data: CreateTaskDto): Promise<Task> {
     return this.prisma.task.create({ data });
   }
 
@@ -25,7 +27,7 @@ export class TasksRepository {
   }
 
   // Update an existing task
-  update(taskId: string, data: Prisma.TaskUpdateInput): Promise<Task> {
+  update(taskId: string, data: UpdateTaskDto): Promise<Task> {
     return this.prisma.task.update({
       where: { id: taskId },
       data,
