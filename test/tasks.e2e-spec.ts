@@ -162,7 +162,7 @@ describe('Tasks (e2e)', () => {
       .set('Authorization', `Bearer ${token}`)
       .send({
         actualMinutes: 50,
-      });
+      })
       .expect(400);
   });
 
