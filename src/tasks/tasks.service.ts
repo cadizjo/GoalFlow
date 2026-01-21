@@ -60,6 +60,13 @@ export class TasksService {
     const task = await this.getById(userId, taskId)
     if (!task) throw new NotFoundException()
 
+    // Prevent completing via update
+    if (dto.status && dto.status === TaskStatus.done) {
+      throw new BadRequestException(
+        'Tasks must be completed using the complete endpoint',
+      )
+    }
+
     // Validate status transition if status is being updated
     if (dto.status && dto.status !== task.status) {
       try {
