@@ -46,8 +46,16 @@ export class TasksController {
 
   // Mark task as complete by ID
   @Post(':id/complete')
-  complete(@Req() req, @Param('id') id: string) {
-    return this.tasksService.complete(req.user.userId, id);
+  complete(
+    @Req() req,
+    @Param('id') id: string,
+    @Body() body: { actualMinutes: number }, // receive actualMinutes in the body
+  ) {
+    return this.tasksService.complete(
+      req.user.userId,
+      id,
+      body.actualMinutes,
+    )
   }
 
   // Add a dependency to a task

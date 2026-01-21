@@ -160,6 +160,9 @@ describe('Tasks (e2e)', () => {
     await request(app.getHttpServer())
       .post(`/tasks/${taskId}/complete`)
       .set('Authorization', `Bearer ${token}`)
+      .send({
+        actual_minutes: 50,
+      });
       .expect(400);
   });
 
@@ -204,12 +207,18 @@ describe('Tasks (e2e)', () => {
     await request(app.getHttpServer())
       .post(`/tasks/${dependencyTaskId}/complete`)
       .set('Authorization', `Bearer ${token}`)
+      .send({
+        actual_minutes: 10,
+      })
       .expect(201);
 
     // Now complete blocked task
     const res = await request(app.getHttpServer())
       .post(`/tasks/${taskId}/complete`)
       .set('Authorization', `Bearer ${token}`)
+      .send({
+        actual_minutes: 50,
+      })
       .expect(201);
 
     expect(res.body.status).toBe('done');

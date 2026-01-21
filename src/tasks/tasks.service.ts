@@ -1,144 +1,192 @@
-import { Injectable, ForbiddenException, BadRequestException } from '@nestjs/common';
-import { PrismaService } from '../prisma/prisma.service';
+import {
+  Injectable,
+  ForbiddenException,
+  BadRequestException,
+  NotFoundException,
+} from '@nestjs/common';
+import { TasksRepository } from './tasks.repo';
 import { CreateTaskDto } from './dto/create-task.dto';
 import { UpdateTaskDto } from './dto/update-task.dto';
 
 @Injectable()
 export class TasksService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private readonly repo: TasksRepository,
+    private readonly eventLog: EventLogService,
+  ) {}
 
-  // Create a new task after verifying goal ownership
+  // Create a new task and verify goal ownership
   async create(userId: string, dto: CreateTaskDto) {
+    const ownsGoal = await this.repo.goalOwnedByUser(dto.goal_id, userId);
+    if (!ownsGoal) throw new ForbiddenException();
 
-    // Verify goal ownership
-    const goal = await this.prisma.goal.findFirst({
-      where: { id: dto.goal_id, user_id: userId },
-    });
+    const task = this.repo.create(dto);
 
-    if (!goal) throw new ForbiddenException();
+    // Log the task creation event
+    await this.eventLog.log(userId, 'task.created', {
+      taskId: task.id,
+      goalId: dto.goal_id,
+    })
 
-    return this.prisma.task.create({
-      data: dto,
-    });
+    return task;
   }
 
-  // Get task by ID with ownership check
+  // Get a task by ID and verify goal ownership
   async getById(userId: string, taskId: string) {
-    const task = await this.prisma.task.findUnique({
-      where: { id: taskId },
-      include: {
-        dependencies: true,
-        dependents: true,
-        subtasks: true,
-      },
-    });
-
+    const task = await this.repo.findById(taskId);
     if (!task) return null;
 
-    // Verify ownership via goal
-    const ownsGoal = await this.prisma.goal.findFirst({
-      where: { id: task.goal_id, user_id: userId },
-    });
-
+    const ownsGoal = await this.repo.goalOwnedByUser(task.goal_id, userId);
     if (!ownsGoal) throw new ForbiddenException();
 
     return task;
   }
 
-  // Update task after verifying ownership
-  async update(userId: string, taskId: string, dto: UpdateTaskDto) {
-    await this.getById(userId, taskId);
-    return this.prisma.task.update({
-      where: { id: taskId },
-      data: dto,
-    });
-  }
+  // Update a task after verifying goal ownership and status transition validity
+  async update(
+    userId: string,
+    taskId: string,
+    dto: UpdateTaskDto,
+  ) {
 
-  // Delete task after verifying ownership
-  async delete(userId: string, taskId: string) {
-    await this.getById(userId, taskId);
+    // Fetch the task to ensure it exists and is owned by the user
+    const task = await this.getById(userId, taskId)
+    if (!task) throw new NotFoundException()
 
-    // Remove dependencies first to maintain referential integrity
-    await this.prisma.taskDependency.deleteMany({
-      where: {
-        OR: [
-          { task_id: taskId },
-          { depends_on_task_id: taskId },
-        ],
-      },
-    });
-
-    return this.prisma.task.delete({
-      where: { id: taskId },
-    });
-  }
-
-  // Mark task as complete after verifying ownership and dependencies
-  async complete(userId: string, taskId: string) {
-    const task = await this.getById(userId, taskId);
-
-    // Prevent completion if dependencies unfinished
-    const blockingDeps = await this.prisma.taskDependency.findMany({
-      where: {
-        task_id: taskId,
-        depends_on_task: {
-          status: { not: 'done' },
-        },
-      },
-    });
-
-    if (blockingDeps.length > 0) {
-      throw new BadRequestException('Task has unmet dependencies');
+    // Validate status transition if status is being updated
+    if (dto.status && dto.status !== task.status) {
+      try {
+        assertValidTaskStatusTransition(
+          task.status,
+          dto.status,
+        )
+      } catch (err) {
+        handleInvariant(err)
+      }
     }
 
-    // Mark task as done if dependencies are satisfied
-    return this.prisma.task.update({
-      where: { id: taskId },
-      data: { status: 'done' },
-    });
+    // Proceed with the update if all checks pass
+    const updated = this.repo.update(taskId, dto);
+
+    // Log the task update event
+    await this.eventLog.log(userId, 'task.updated', {
+      taskId,
+      changes: dto,
+    })
+
+    return updated;
   }
 
-  // Add a dependency to a task after verifying ownership
+
+  // Delete a task and its dependencies after verifying goal ownership
+  async delete(userId: string, taskId: string) {
+    const task = await this.getById(userId, taskId);
+    if (!task) throw new NotFoundException();
+
+    // First delete all dependencies related to the task to maintain data integrity
+    await this.repo.deleteAllDependencies(taskId);
+    return this.repo.delete(taskId);
+
+    // Log the task deletion event
+    await this.eventLog.log(userId, 'task.deleted', {
+      taskId,
+    })
+  }
+
+  // Complete a task after verifying all invariants
+  async complete(
+    userId: string,
+    taskId: string,
+    actualMinutes: number, // actualMinutes is required to complete a task
+  ) {
+
+    // Fetch the task to ensure it exists and is owned by the user
+    const task = await this.getById(userId, taskId)
+    if (!task) throw new NotFoundException()
+
+    // Check for blocking dependencies
+    const blockingDeps = await this.repo.findBlockingDependencies(taskId)
+
+    // Validate completion invariants
+    try {
+      assertTaskCanBeCompleted(
+        task.status,
+        blockingDeps.length,
+        actualMinutes,
+      )
+    } catch (err) {
+      handleInvariant(err)
+    }
+
+    // Mark the task as completed
+    const completed = await this.repo.update(taskId, {
+      status: 'done',
+      actual_minutes: actualMinutes,
+    })
+
+    // Log the task completion event
+    await this.eventLog.log(userId, 'task.completed', {
+      taskId,
+      actualMinutes,
+    })
+
+    return completed
+  }
+
+  // Add a dependency between two tasks after verifying ownership and validity
   async addDependency(
     userId: string,
     taskId: string,
     dependsOnTaskId: string,
   ) {
-    if (taskId === dependsOnTaskId) {
-      throw new BadRequestException('Task cannot depend on itself');
+
+    // Validate that the dependency is valid
+    try {
+      assertValidDependency(taskId, dependsOnTaskId)
+    } catch (err) {
+      handleInvariant(err)
     }
 
-    // Verify ownership
-    await this.getById(userId, taskId);
-    await this.getById(userId, dependsOnTaskId);
+    // Verify ownership of both tasks
+    const task = await this.getById(userId, taskId)
+    if (!task) throw new NotFoundException()
 
-    // NOTE: Cycle detection intentionally deferred
-    return this.prisma.taskDependency.create({
-      data: {
-        task_id: taskId,
-        depends_on_task_id: dependsOnTaskId,
-      },
-    });
+    const dependencyTask = await this.getById(userId, dependsOnTaskId)
+    if (!dependencyTask) throw new NotFoundException()
+
+    // Add the dependency
+    const dep = await this.repo.addDependency(
+      taskId,
+      dependsOnTaskId,
+    )
+
+    // Log the dependency addition event
+    await this.eventLog.log(userId, 'task.dependency_added', {
+      taskId,
+      dependsOnTaskId,
+    })
+
+    return dep
   }
 
-  // Remove a dependency from a task after verifying ownership
+  // Remove a dependency between two tasks after verifying ownership
   async removeDependency(
     userId: string,
     taskId: string,
     dependsOnTaskId: string,
   ) {
 
-    // Verify ownership
-    await this.getById(userId, taskId);
+    // Verify ownership of the task
+    const task = await this.getById(userId, taskId);
+    if (!task) throw new NotFoundException();
 
-    // Delete the dependency using composite key
-    return this.prisma.taskDependency.delete({
-      where: {
-        task_id_depends_on_task_id: {
-          task_id: taskId,
-          depends_on_task_id: dependsOnTaskId,
-        },
-      },
-    });
+    // Remove the dependency
+    await this.repo.removeDependency(taskId, dependsOnTaskId)
+
+    // Log the dependency removal event
+    await this.eventLog.log(userId, 'task.dependency_removed', {
+      taskId,
+      dependsOnTaskId,
+    })
   }
 }
