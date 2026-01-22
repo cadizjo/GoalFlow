@@ -9,6 +9,7 @@ import {
   assertTaskCanBeCompleted,
   assertValidDependency,
 } from './tasks.invariants';
+import { TaskStatus } from '@prisma/client';
 import { CreateTaskDto } from './dto/create-task.dto';
 import { UpdateTaskDto } from './dto/update-task.dto';
 import { TasksRepository } from './tasks.repo';
@@ -31,8 +32,8 @@ export class TasksService {
 
     // Log the task creation event
     await this.eventLog.log(userId, 'task.created', {
-      taskId: task.id,
-      goalId: dto.goal_id,
+      task_id: task.id,
+      goal_id: dto.goal_id,
     })
 
     return task;
@@ -105,6 +106,8 @@ export class TasksService {
     await this.eventLog.log(userId, 'task.deleted', {
       task_id: taskId,
     })
+
+    // return { success: true }; // Indicate successful deletion
   }
 
   // Complete a task after verifying all invariants
@@ -134,7 +137,7 @@ export class TasksService {
 
     // Mark the task as completed
     const completed = await this.repo.update(taskId, {
-      status: 'done',
+      status: TaskStatus.done,
       actual_minutes: actualMinutes,
     })
 
@@ -205,5 +208,7 @@ export class TasksService {
       task_id: taskId,
       depends_on_task_id: dependsOnTaskId,
     })
+
+    // return { success: true }; // Indicate successful removal
   }
 }

@@ -224,6 +224,69 @@ describe('Tasks (e2e)', () => {
     expect(res.body.status).toBe('done');
   });
 
+  it('removes dependency and allows completion afterward', async () => {
+    // Create dependency task
+    const dep = await request(app.getHttpServer())
+      .post('/tasks')
+      .set('Authorization', `Bearer ${token}`)
+      .send({
+        goal_id: goalId,
+        description: 'Dependency Task',
+        estimated_minutes: 10,
+        priority_score: 1,
+      });
+
+    const dependencyTaskId = dep.body.id;
+
+    // Create blocked task
+    const task = await request(app.getHttpServer())
+      .post('/tasks')
+      .set('Authorization', `Bearer ${token}`)
+      .send({
+        goal_id: goalId,
+        description: 'Blocked Task',
+        estimated_minutes: 30,
+        priority_score: 2,
+      });
+
+    const taskId = task.body.id;
+
+    // Add dependency
+    await request(app.getHttpServer())
+      .post(`/tasks/${taskId}/dependencies`)
+      .set('Authorization', `Bearer ${token}`)
+      .send({
+        dependsOnTaskId: dependencyTaskId,
+      })
+      .expect(201);
+
+    // Verify completion is blocked
+    await request(app.getHttpServer())
+      .post(`/tasks/${taskId}/complete`)
+      .set('Authorization', `Bearer ${token}`)
+      .send({
+        actual_minutes: 30,
+      })
+      .expect(400);
+
+    // Remove dependency
+    await request(app.getHttpServer())
+      .delete(`/tasks/${taskId}/dependencies/${dependencyTaskId}`)
+      .set('Authorization', `Bearer ${token}`)
+      .expect(200);
+
+    // Now completion should succeed
+    const res = await request(app.getHttpServer())
+      .post(`/tasks/${taskId}/complete`)
+      .set('Authorization', `Bearer ${token}`)
+      .send({
+        actual_minutes: 30,
+      })
+      .expect(201);
+
+    expect(res.body.status).toBe('done');
+  });
+
   it('DELETE /tasks/:id — deletes task', async () => {
     const task = await request(app.getHttpServer())
       .post('/tasks')
