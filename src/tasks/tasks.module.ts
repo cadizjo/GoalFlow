@@ -11,6 +11,6 @@ import { EventLogModule } from '../event-log/event-log.module';
     EventLogModule
   ],
   controllers: [TasksController],
-  providers: [TasksService],
+  providers: [TasksService, TasksRepository],
 })
 export class TasksModule {}
