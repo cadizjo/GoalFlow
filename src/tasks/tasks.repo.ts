@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
-import { Prisma, Task } from '@prisma/client';
+import { Prisma, Task, TaskStatus } from '@prisma/client';
 import { CreateTaskDto } from './dto/create-task.dto';
 import { UpdateTaskDto } from './dto/update-task.dto';
 
@@ -59,7 +59,7 @@ export class TasksRepository {
       where: {
         task_id: taskId,
         depends_on_task: {
-          status: { not: 'done' },
+          status: { not: TaskStatus.done },
         },
       },
       include: {
