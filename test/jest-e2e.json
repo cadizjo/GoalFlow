@@ -9,5 +9,6 @@
   "setupFiles": ["<rootDir>/test/setup.ts"],
   "moduleNameMapper": {
     "^src/(.*)$": "<rootDir>/src/$1"
-  }
+  },
+  "maxWorkers": 1
 }
