@@ -197,7 +197,7 @@ describe('Goals (e2e)', () => {
     await request(app.getHttpServer())
       .get(`/goals/${goalId}`)
       .set('Authorization', `Bearer ${token}`)
-      .expect(404);
+      .expect(403);
   });
 
   // Test accessing goals without JWT

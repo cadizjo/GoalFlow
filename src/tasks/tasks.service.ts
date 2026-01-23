@@ -42,7 +42,7 @@ export class TasksService {
   // Get a task by ID and verify goal ownership
   async getById(userId: string, taskId: string) {
     const task = await this.repo.findById(taskId);
-    if (!task) return null;
+    if (!task) throw new NotFoundException();
 
     const ownsGoal = await this.repo.goalOwnedByUser(task.goal_id, userId);
     if (!ownsGoal) throw new ForbiddenException();

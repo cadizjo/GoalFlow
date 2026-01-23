@@ -4,6 +4,7 @@ import { INestApplication } from '@nestjs/common';
 import request from 'supertest';
 import { AppModule } from '../src/app.module';
 import { cleanDb } from './utils/cleanup';
+import { stat } from 'fs';
 
 describe('Tasks (e2e)', () => {
   let app: INestApplication;
@@ -127,6 +128,27 @@ describe('Tasks (e2e)', () => {
     expect(res.body.description).toBe('Updated');
   });
 
+  it('rejects status update of "done"', async () => {
+    const task = await request(app.getHttpServer())
+      .post('/tasks')
+      .set('Authorization', `Bearer ${token}`)
+      .send({
+        goal_id: goalId,
+        description: 'Old',
+        estimated_minutes: 20,
+        priority_score: 1,
+      })
+      .expect(201);
+
+    await request(app.getHttpServer())
+      .patch(`/tasks/${task.body.id}`)
+      .set('Authorization', `Bearer ${token}`)
+      .send({
+        status: 'done',
+      })
+      .expect(400);
+  });
+
   it('blocks completion if dependency incomplete', async () => {
     // Create dependency task
     const dep = await request(app.getHttpServer())
@@ -220,7 +242,7 @@ describe('Tasks (e2e)', () => {
       .send({
         actual_minutes: 10,
       })
-      .expect(200);
+      .expect(201);
 
     // Now complete blocked task
     const res = await request(app.getHttpServer())
@@ -229,7 +251,7 @@ describe('Tasks (e2e)', () => {
       .send({
         actual_minutes: 50,
       })
-      .expect(200);
+      .expect(201);
 
     expect(res.body.status).toBe('done');
   });
@@ -294,7 +316,7 @@ describe('Tasks (e2e)', () => {
       .send({
         actual_minutes: 30,
       })
-      .expect(200);
+      .expect(201);
 
     expect(res.body.status).toBe('done');
   });
@@ -317,7 +339,7 @@ describe('Tasks (e2e)', () => {
       .expect(200);
 
     // Verify deletion
-    await request(app.getHttpServer())
+    const res = await request(app.getHttpServer())
       .get(`/tasks/${task.body.id}`)
       .set('Authorization', `Bearer ${token}`)
       .expect(404);
