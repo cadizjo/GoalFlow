@@ -69,7 +69,7 @@ export class TasksController {
     return this.tasksService.addDependency(
       req.user.userId,
       id,
-      dto.dependsOnTaskId,
+      dto.depends_on_task_id,
     );
   }
 

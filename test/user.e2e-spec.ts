@@ -1,12 +1,15 @@
+// test/user.e2e-spec.ts
 import { Test } from '@nestjs/testing';
 import { INestApplication } from '@nestjs/common';
 import request from 'supertest';
 import { AppModule } from '../src/app.module';
+import { cleanDb } from './utils/cleanup';
 
 // End-to-end tests for Users module
 describe('Users (e2e)', () => {
   let app: INestApplication;
   let token: string;
+  let user: { email: string; password: string; name: string };
 
   // Initialize the NestJS application before all tests
   beforeAll(async () => {
@@ -16,22 +19,30 @@ describe('Users (e2e)', () => {
 
     app = moduleRef.createNestApplication();
     await app.init();
+  });
+
+  beforeEach(async () => {
+    await cleanDb(app);
+
+    user = {
+      email: `users_${Date.now()}@test.com`,
+      password: 'password123',
+      name: 'Users Tester',
+    };
 
     // Signup & login once
     await request(app.getHttpServer())
       .post('/auth/signup')
-      .send({
-        email: 'users@test.com',
-        password: 'password123',
-        name: 'Users Tester',
-      });
+      .send(user)
+      .expect(201);
 
     const res = await request(app.getHttpServer())
       .post('/auth/login')
       .send({
-        email: 'users@test.com',
-        password: 'password123',
-      });
+        email: user.email,
+        password: user.password,
+      })
+      .expect(201);
 
     // Save the JWT token for authenticated requests
     token = res.body.access_token;
@@ -39,6 +50,7 @@ describe('Users (e2e)', () => {
 
   // Close the NestJS application after all tests
   afterAll(async () => {
+    await cleanDb(app);
     await app.close();
   });
 
@@ -56,8 +68,8 @@ describe('Users (e2e)', () => {
       .set('Authorization', `Bearer ${token}`)
       .expect(200);
 
-    expect(res.body).toHaveProperty('email', 'users@test.com');
-    expect(res.body).toHaveProperty('name', 'Users Tester');
+    expect(res.body).toHaveProperty('email', user.email);
+    expect(res.body).toHaveProperty('name', user.name);
   });
 
   // Test updating user profile

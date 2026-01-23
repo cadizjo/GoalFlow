@@ -1,3 +1,4 @@
+// test/tasks.e2e-spec.ts
 import { Test } from '@nestjs/testing';
 import { INestApplication } from '@nestjs/common';
 import request from 'supertest';
@@ -7,9 +8,8 @@ import { cleanDb } from './utils/cleanup';
 describe('Tasks (e2e)', () => {
   let app: INestApplication;
   let token: string;
+  let user: { email: string; password: string; name: string };
   let goalId: string;
-  let taskId: string;
-  let dependencyTaskId: string;
 
   // Initialize the NestJS application before all tests
   beforeAll(async () => {
@@ -24,22 +24,26 @@ describe('Tasks (e2e)', () => {
   beforeEach(async () => {
     await cleanDb(app);
 
+    user = {
+      email: `tasks_${Date.now()}@test.com`,
+      password: 'password123',
+      name: 'Tasks Tester',
+    };
+
     // Signup
     await request(app.getHttpServer())
       .post('/auth/signup')
-      .send({
-        email: 'task@test.com',
-        password: 'password123',
-        name: 'Task Tester',
-      });
+      .send(user)
+      .expect(201);
 
     // Login
     const login = await request(app.getHttpServer())
       .post('/auth/login')
       .send({
-        email: 'task@test.com',
-        password: 'password123',
-      });
+        email: user.email,
+        password: user.password,
+      })
+      .expect(201);
 
     token = login.body.access_token;
 
@@ -50,12 +54,14 @@ describe('Tasks (e2e)', () => {
       .send({
         title: 'Test Goal',
         deadline: new Date().toISOString(),
-      });
+      })
+      .expect(201);
 
     goalId = goal.body.id;
   });
 
   afterAll(async () => {
+    await cleanDb(app);
     await app.close();
   });
 
@@ -71,7 +77,6 @@ describe('Tasks (e2e)', () => {
       })
       .expect(201);
 
-    taskId = res.body.id;
     expect(res.body.goal_id).toBe(goalId);
     expect(res.body.description).toBe('First task');
     expect(res.body.estimated_minutes).toBe(30);
@@ -88,7 +93,8 @@ describe('Tasks (e2e)', () => {
         description: 'Fetch me',
         estimated_minutes: 15,
         priority_score: 2,
-      });
+      })
+      .expect(201);
 
     const res = await request(app.getHttpServer())
       .get(`/tasks/${task.body.id}`)
@@ -107,7 +113,8 @@ describe('Tasks (e2e)', () => {
         description: 'Old',
         estimated_minutes: 20,
         priority_score: 1,
-      });
+      })
+      .expect(201);
 
     const res = await request(app.getHttpServer())
       .patch(`/tasks/${task.body.id}`)
@@ -121,7 +128,6 @@ describe('Tasks (e2e)', () => {
   });
 
   it('blocks completion if dependency incomplete', async () => {
-
     // Create dependency task
     const dep = await request(app.getHttpServer())
       .post('/tasks')
@@ -131,9 +137,10 @@ describe('Tasks (e2e)', () => {
         description: 'Dependency',
         estimated_minutes: 10,
         priority_score: 1,
-      });
+      })
+      .expect(201);
 
-    dependencyTaskId = dep.body.id;
+    const dependencyTaskId = dep.body.id;
 
     // Create blocked task
     const task = await request(app.getHttpServer())
@@ -144,19 +151,21 @@ describe('Tasks (e2e)', () => {
         description: 'Blocked Task',
         estimated_minutes: 30,
         priority_score: 2,
-      });
+      })
+      .expect(201);
 
-    taskId = task.body.id;
+    const taskId = task.body.id;
 
     // Add dependency
     await request(app.getHttpServer())
       .post(`/tasks/${taskId}/dependencies`)
       .set('Authorization', `Bearer ${token}`)
       .send({
-        dependsOnTaskId: dependencyTaskId,
+        depends_on_task_id: dependencyTaskId,
       })
       .expect(201);
 
+    // Attempt to complete blocked task and expect failure
     await request(app.getHttpServer())
       .post(`/tasks/${taskId}/complete`)
       .set('Authorization', `Bearer ${token}`)
@@ -167,7 +176,6 @@ describe('Tasks (e2e)', () => {
   });
 
   it('allows completion after dependency done', async () => {
-
     // Create dependency task
     const dep = await request(app.getHttpServer())
       .post('/tasks')
@@ -177,9 +185,10 @@ describe('Tasks (e2e)', () => {
         description: 'Dependency',
         estimated_minutes: 10,
         priority_score: 1,
-      });
+      })
+      .expect(201);
 
-    dependencyTaskId = dep.body.id;
+    const dependencyTaskId = dep.body.id;
 
     // Create blocked task
     const task = await request(app.getHttpServer())
@@ -190,16 +199,17 @@ describe('Tasks (e2e)', () => {
         description: 'Blocked Task',
         estimated_minutes: 30,
         priority_score: 2,
-      });
+      })
+      .expect(201);
 
-    taskId = task.body.id;
+    const taskId = task.body.id;
 
     // Add dependency
     await request(app.getHttpServer())
       .post(`/tasks/${taskId}/dependencies`)
       .set('Authorization', `Bearer ${token}`)
       .send({
-        dependsOnTaskId: dependencyTaskId,
+        depends_on_task_id: dependencyTaskId,
       })
       .expect(201);
 
@@ -210,7 +220,7 @@ describe('Tasks (e2e)', () => {
       .send({
         actual_minutes: 10,
       })
-      .expect(201);
+      .expect(200);
 
     // Now complete blocked task
     const res = await request(app.getHttpServer())
@@ -219,7 +229,7 @@ describe('Tasks (e2e)', () => {
       .send({
         actual_minutes: 50,
       })
-      .expect(201);
+      .expect(200);
 
     expect(res.body.status).toBe('done');
   });
@@ -234,7 +244,8 @@ describe('Tasks (e2e)', () => {
         description: 'Dependency Task',
         estimated_minutes: 10,
         priority_score: 1,
-      });
+      })
+      .expect(201);
 
     const dependencyTaskId = dep.body.id;
 
@@ -247,7 +258,8 @@ describe('Tasks (e2e)', () => {
         description: 'Blocked Task',
         estimated_minutes: 30,
         priority_score: 2,
-      });
+      })
+      .expect(201);
 
     const taskId = task.body.id;
 
@@ -256,7 +268,7 @@ describe('Tasks (e2e)', () => {
       .post(`/tasks/${taskId}/dependencies`)
       .set('Authorization', `Bearer ${token}`)
       .send({
-        dependsOnTaskId: dependencyTaskId,
+        depends_on_task_id: dependencyTaskId,
       })
       .expect(201);
 
@@ -282,7 +294,7 @@ describe('Tasks (e2e)', () => {
       .send({
         actual_minutes: 30,
       })
-      .expect(201);
+      .expect(200);
 
     expect(res.body.status).toBe('done');
   });
@@ -296,11 +308,18 @@ describe('Tasks (e2e)', () => {
         description: 'Delete me',
         estimated_minutes: 5,
         priority_score: 1,
-      });
+      })
+      .expect(201);
 
     await request(app.getHttpServer())
       .delete(`/tasks/${task.body.id}`)
       .set('Authorization', `Bearer ${token}`)
       .expect(200);
+
+    // Verify deletion
+    await request(app.getHttpServer())
+      .get(`/tasks/${task.body.id}`)
+      .set('Authorization', `Bearer ${token}`)
+      .expect(404);
   });
 });

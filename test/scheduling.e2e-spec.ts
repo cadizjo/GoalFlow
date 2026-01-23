@@ -1,3 +1,4 @@
+// test/scheduling.e2e-spec.ts
 import { Test } from '@nestjs/testing';
 import { INestApplication } from '@nestjs/common';
 import request from 'supertest';
@@ -7,7 +8,11 @@ import { cleanDb } from './utils/cleanup';
 describe('ScheduleBlocks (e2e)', () => {
   let app: INestApplication;
   let token: string;
+  let user: { email: string; password: string; name: string };
   let taskId: string;
+  
+  const start = new Date('2030-01-01T10:00:00Z');
+  const end = new Date('2030-01-01T10:30:00Z');
 
   // Initialize the NestJS application before all tests
   beforeAll(async () => {
@@ -22,22 +27,26 @@ describe('ScheduleBlocks (e2e)', () => {
   beforeEach(async () => {
     await cleanDb(app);
 
+    user = {
+      email: `scheduling_${Date.now()}@test.com`,
+      password: 'password123',
+      name: 'Scheduling Tester',
+    };
+
     // signup
     await request(app.getHttpServer())
       .post('/auth/signup')
-      .send({
-        email: 'schedule@test.com',
-        password: 'password123',
-        name: 'Scheduler',
-      });
+      .send(user)
+      .expect(201);
 
     // login
     const loginRes = await request(app.getHttpServer())
       .post('/auth/login')
       .send({
-        email: 'schedule@test.com',
-        password: 'password123',
-      });
+        email: user.email,
+        password: user.password,
+      })
+      .expect(201);
 
     token = loginRes.body.access_token;
 
@@ -48,7 +57,8 @@ describe('ScheduleBlocks (e2e)', () => {
       .send({
         title: 'Test Goal',
         deadline: new Date().toISOString(),
-      });
+      })
+      .expect(201);
 
     // create task
     const taskRes = await request(app.getHttpServer())
@@ -59,12 +69,14 @@ describe('ScheduleBlocks (e2e)', () => {
         description: 'Test Task',
         estimated_minutes: 30,
         priority_score: 1,
-      });
+      })
+      .expect(201);
 
     taskId = taskRes.body.id;
   });
 
   afterAll(async () => {
+    await cleanDb(app);
     await app.close();
   });
 
@@ -74,8 +86,8 @@ describe('ScheduleBlocks (e2e)', () => {
       .set('Authorization', `Bearer ${token}`)
       .send({
         task_id: taskId,
-        start_time: new Date().toISOString(),
-        end_time: new Date(Date.now() + 30 * 60000).toISOString(),
+        start_time: start,
+        end_time: end,
         source: 'manual',
         status: 'scheduled',
       })
@@ -93,11 +105,12 @@ describe('ScheduleBlocks (e2e)', () => {
       .set('Authorization', `Bearer ${token}`)
       .send({
         task_id: taskId,
-        start_time: new Date().toISOString(),
-        end_time: new Date(Date.now() + 60000).toISOString(),
+        start_time: start,
+        end_time: end,
         source: 'manual',
         status: 'scheduled',
-      });
+      })
+      .expect(201);
 
     const res = await request(app.getHttpServer())
       .get('/schedule-blocks')
@@ -113,11 +126,12 @@ describe('ScheduleBlocks (e2e)', () => {
       .set('Authorization', `Bearer ${token}`)
       .send({
         task_id: taskId,
-        start_time: new Date().toISOString(),
-        end_time: new Date(Date.now() + 60000).toISOString(),
+        start_time: start,
+        end_time: end,
         source: 'manual',
         status: 'scheduled',
-      });
+      })
+      .expect(201);
 
     const blockId = createRes.body.id;
 
@@ -131,20 +145,30 @@ describe('ScheduleBlocks (e2e)', () => {
   });
 
   it('DELETE /schedule-blocks/:id — deletes block', async () => {
-    const createRes = await request(app.getHttpServer())
+    const res = await request(app.getHttpServer())
       .post('/schedule-blocks')
       .set('Authorization', `Bearer ${token}`)
       .send({
         task_id: taskId,
-        start_time: new Date().toISOString(),
-        end_time: new Date(Date.now() + 60000).toISOString(),
+        start_time: start,
+        end_time: end,
         source: 'manual',
         status: 'scheduled',
-      });
+      })
+      .expect(201);
 
     await request(app.getHttpServer())
-      .delete(`/schedule-blocks/${createRes.body.id}`)
+      .delete(`/schedule-blocks/${res.body.id}`)
       .set('Authorization', `Bearer ${token}`)
       .expect(200);
+
+    // Verify deletion
+    const blocks = await request(app.getHttpServer())
+      .get('/schedule-blocks')
+      .set('Authorization', `Bearer ${token}`)
+      .expect(200);
+
+    expect(blocks.body.find(b => b.id === res.body.id)).toBeUndefined();
+
   });
 });

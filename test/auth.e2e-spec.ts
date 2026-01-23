@@ -1,11 +1,14 @@
+// test/auth.e2e-spec.ts
 import { Test } from '@nestjs/testing';
 import { INestApplication } from '@nestjs/common';
 import request from 'supertest';
 import { AppModule } from '../src/app.module';
+import { cleanDb } from './utils/cleanup';
 
 // End-to-end tests for Auth module
 describe('Auth (e2e)', () => {
   let app: INestApplication;
+  let user: { email: string; password: string; name: string };
 
   // Initialize the NestJS application before all tests
   beforeAll(async () => {
@@ -17,17 +20,21 @@ describe('Auth (e2e)', () => {
     await app.init();
   });
 
-  // Close the NestJS application after all tests
-  afterAll(async () => {
-    await app.close();
+  beforeEach(async () => {
+    await cleanDb(app);
+
+    user = {
+      email: `auth_${Date.now()}@test.com`,
+      password: 'password123',
+      name: 'Auth Tester',
+    };
   });
 
-  // Test user data
-  const user = {
-    email: 'auth@test.com',
-    password: 'password123',
-    name: 'Auth Tester',
-  };
+  // Close the NestJS application after all tests
+  afterAll(async () => {
+    await cleanDb(app);
+    await app.close();
+  });
 
   // Test user signup
   it('POST /auth/signup — should create user', async () => {
@@ -36,30 +43,36 @@ describe('Auth (e2e)', () => {
       .send(user)
       .expect(201);
 
-    expect(res.body).toHaveProperty('access_token');
+    expect(res.body.access_token).toBeDefined();
   });
 
   // Test user login
   it('POST /auth/login — should login user', async () => {
-    const res = await request(app.getHttpServer())
-      .post('/auth/login')
-      .send({
-        email: user.email,
-        password: user.password,
-      })
+    // Ensure user exists
+    await request(app.getHttpServer())
+      .post('/auth/signup')
+      .send(user)
       .expect(201);
 
-    expect(res.body).toHaveProperty('access_token');
+    const res = await request(app.getHttpServer())
+      .post('/auth/login')
+      .send({ email: user.email, password: user.password })
+      .expect(201);
+
+    expect(res.body.access_token).toBeDefined();
   });
 
   // Test login with invalid password
   it('POST /auth/login — invalid password', async () => {
+    // Ensure user exists
+    await request(app.getHttpServer())
+      .post('/auth/signup')
+      .send(user)
+      .expect(201);
+
     await request(app.getHttpServer())
       .post('/auth/login')
-      .send({
-        email: user.email,
-        password: 'wrongpassword',
-      })
+      .send({ email: user.email, password: 'wrongpassword'})
       .expect(401);
   });
 });

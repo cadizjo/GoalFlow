@@ -1,13 +1,15 @@
+// test/goals.e2e-spec.ts
 import { Test, TestingModule } from '@nestjs/testing';
 import { INestApplication } from '@nestjs/common';
 import request from 'supertest';
 import { AppModule } from '../src/app.module';
+import { cleanDb } from './utils/cleanup';
 
 // End-to-end tests for Goals module
 describe('Goals (e2e)', () => {
   let app: INestApplication;
   let token: string;
-  let goalId: string;
+  let user: { email: string; password: string; name: string };
 
   // Initialize the NestJS application before all tests
   beforeAll(async () => {
@@ -17,28 +19,38 @@ describe('Goals (e2e)', () => {
 
     app = moduleFixture.createNestApplication();
     await app.init();
+  });
 
-    // Create + login user
+  beforeEach(async () => {
+    await cleanDb(app);
+
+    user = {
+      email: `goals_${Date.now()}@test.com`,
+      password: 'password123',
+      name: 'Goals Tester',
+    };
+
+    // Signup & login once
     await request(app.getHttpServer())
       .post('/auth/signup')
-      .send({
-        email: 'goals@test.com',
-        password: 'password123',
-        name: 'Goal Tester',
-      });
+      .send(user)
+      .expect(201);
 
     const res = await request(app.getHttpServer())
       .post('/auth/login')
       .send({
-        email: 'goals@test.com',
-        password: 'password123',
-      });
+        email: user.email,
+        password: user.password,
+      })
+      .expect(201);
 
+    // Save the JWT token for authenticated requests
     token = res.body.access_token;
   });
 
   // Close the NestJS application after all tests
   afterAll(async () => {
+    await cleanDb(app);
     await app.close();
   });
 
@@ -60,12 +72,21 @@ describe('Goals (e2e)', () => {
     expect(res.body.description).toBe('Finish core features');
     expect(res.body.category).toBe('startup'); 
     expect(res.body.status).toBe('active');
-
-    goalId = res.body.id;
   });
 
   // Test retrieving all goals for the user
   it('GET /goals — returns user goals', async () => {
+    await request(app.getHttpServer())
+    .post('/goals')
+    .set('Authorization', `Bearer ${token}`)
+    .send({
+      title: 'Ship MVP',
+      description: 'Finish core features',
+      deadline: '2026-03-01T00:00:00Z',
+      category: 'startup',
+    })
+    .expect(201);
+
     const res = await request(app.getHttpServer())
       .get('/goals')
       .set('Authorization', `Bearer ${token}`)
@@ -77,6 +98,19 @@ describe('Goals (e2e)', () => {
 
   // Test retrieving a specific goal by ID
   it('GET /goals/:id — returns goal with tasks & milestones', async () => {
+    const goal = await request(app.getHttpServer())
+    .post('/goals')
+    .set('Authorization', `Bearer ${token}`)
+    .send({
+      title: 'Ship MVP',
+      description: 'Finish core features',
+      deadline: '2026-03-01T00:00:00Z',
+      category: 'startup',
+    })
+    .expect(201);
+
+    const goalId = goal.body.id;
+
     const res = await request(app.getHttpServer())
       .get(`/goals/${goalId}`)
       .set('Authorization', `Bearer ${token}`)
@@ -89,6 +123,19 @@ describe('Goals (e2e)', () => {
 
   // Test updating a specific goal
   it('PATCH /goals/:id — updates goal', async () => {
+    const goal = await request(app.getHttpServer())
+    .post('/goals')
+    .set('Authorization', `Bearer ${token}`)
+    .send({
+      title: 'Ship MVP',
+      description: 'Finish core features',
+      deadline: '2026-03-01T00:00:00Z',
+      category: 'startup',
+    })
+    .expect(201);
+
+    const goalId = goal.body.id;
+
     const res = await request(app.getHttpServer())
       .patch(`/goals/${goalId}`)
       .set('Authorization', `Bearer ${token}`)
@@ -104,6 +151,19 @@ describe('Goals (e2e)', () => {
 
   // Test goal breakdown stub endpoint
   it('POST /goals/:id/breakdown — stub works', async () => {
+    const goal = await request(app.getHttpServer())
+    .post('/goals')
+    .set('Authorization', `Bearer ${token}`)
+    .send({
+      title: 'Ship MVP',
+      description: 'Finish core features',
+      deadline: '2026-03-01T00:00:00Z',
+      category: 'startup',
+    })
+    .expect(201);
+
+    const goalId = goal.body.id;
+
     const res = await request(app.getHttpServer())
       .post(`/goals/${goalId}/breakdown`)
       .set('Authorization', `Bearer ${token}`)
@@ -115,16 +175,29 @@ describe('Goals (e2e)', () => {
 
   // Test deleting a specific goal
   it('DELETE /goals/:id — deletes goal', async () => {
+    const goal = await request(app.getHttpServer())
+    .post('/goals')
+    .set('Authorization', `Bearer ${token}`)
+    .send({
+      title: 'Ship MVP',
+      description: 'Finish core features',
+      deadline: '2026-03-01T00:00:00Z',
+      category: 'startup',
+    })
+    .expect(201);
+
+    const goalId = goal.body.id;
+
     await request(app.getHttpServer())
       .delete(`/goals/${goalId}`)
       .set('Authorization', `Bearer ${token}`)
       .expect(200);
 
-    // Verify the goal is deleted
+    // Verify deletion
     await request(app.getHttpServer())
       .get(`/goals/${goalId}`)
       .set('Authorization', `Bearer ${token}`)
-      .expect(403);
+      .expect(404);
   });
 
   // Test accessing goals without JWT

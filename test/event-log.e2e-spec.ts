@@ -1,3 +1,4 @@
+// test/event-log.e2e-spec.ts
 import { Test } from '@nestjs/testing';
 import { INestApplication } from '@nestjs/common';
 import request from 'supertest';
@@ -7,6 +8,7 @@ import { cleanDb } from './utils/cleanup';
 describe('EventLog (e2e)', () => {
   let app: INestApplication;
   let token: string;
+  let user: { email: string; password: string; name: string };
 
   // Initialize the NestJS application before all tests
   beforeAll(async () => {
@@ -21,27 +23,32 @@ describe('EventLog (e2e)', () => {
   beforeEach(async () => {
     await cleanDb(app);
 
+    user = {
+      email: `eventLog_${Date.now()}@test.com`,
+      password: 'password123',
+      name: 'EventLog Tester',
+    };
+
     // signup
     await request(app.getHttpServer())
       .post('/auth/signup')
-      .send({
-        email: 'events@test.com',
-        password: 'password123',
-        name: 'Event Tester',
-      });
+      .send(user)
+      .expect(201);
 
     // login
     const res = await request(app.getHttpServer())
       .post('/auth/login')
       .send({
-        email: 'events@test.com',
-        password: 'password123',
-      });
+        email: user.email,
+        password: user.password,
+      })
+      .expect(201);
 
     token = res.body.access_token;
   });
 
   afterAll(async () => {
+    await cleanDb(app);
     await app.close();
   });
 
@@ -52,5 +59,10 @@ describe('EventLog (e2e)', () => {
       .expect(200);
 
     expect(Array.isArray(res.body)).toBe(true);
+
+    // Include after events emitted during signup & login
+    // expect(res.body.length).toBeGreaterThan(0);
+    // expect(res.body[0]).toHaveProperty('type');
+    // expect(res.body[0]).toHaveProperty('created_at');
   });
 });
