@@ -9,6 +9,7 @@ import {
   assertTaskCanBeCompleted,
   assertValidDependency,
   assertNoDependencyCycle,
+  assertDependencyWithinSameGoal,
 } from './tasks.invariants';
 import { TaskStatus } from '@prisma/client';
 import { CreateTaskDto } from './dto/create-task.dto';
@@ -62,14 +63,14 @@ export class TasksService {
     const task = await this.getById(userId, taskId)
     if (!task) throw new NotFoundException()
 
-    // Prevent completing via update
+    // 1. Prevent completion via update
     if (dto.status && dto.status === TaskStatus.done) {
       throw new BadRequestException(
         'Tasks must be completed using the complete endpoint',
       )
     }
 
-    // Validate status transition if status is being updated
+    // 2. Validate status transition if status is being updated
     if (dto.status && dto.status !== task.status) {
       try {
         assertValidTaskStatusTransition(
@@ -98,6 +99,13 @@ export class TasksService {
   async delete(userId: string, taskId: string) {
     const task = await this.getById(userId, taskId);
     if (!task) throw new NotFoundException();
+
+    // Prevent deletion of completed tasks
+    if (task.status === TaskStatus.done) {
+      throw new BadRequestException(
+        'Completed tasks cannot be deleted'
+      )
+    }
 
     // First delete all dependencies related to the task to maintain data integrity
     await this.repo.deleteAllDependencies(taskId);
@@ -158,21 +166,31 @@ export class TasksService {
     dependsOnTaskId: string,
   ) {
 
-    // Validate that the dependency is valid
+    // 1. Validate that the dependency is valid (i.e., not self-dependency)
     try {
       assertValidDependency(taskId, dependsOnTaskId)
     } catch (err) {
       handleInvariant(err)
     }
 
-    // Verify ownership of both tasks
+    // 2. Verify ownership of both tasks
     const task = await this.getById(userId, taskId)
     if (!task) throw new NotFoundException()
 
     const dependencyTask = await this.getById(userId, dependsOnTaskId)
     if (!dependencyTask) throw new NotFoundException()
 
-    // Cycle detection
+    // 3. Verify that both tasks belong to the same goal
+    try {
+      assertDependencyWithinSameGoal(
+        task.goal_id,
+        dependencyTask.goal_id,
+      )
+    } catch (err) {
+      handleInvariant(err)
+    }
+
+    // 4. Cycle detection - ensure adding this dependency won't create a cycle
     const transitiveDeps = await this.repo.findTransitiveDependencies(dependsOnTaskId)
 
     try {
@@ -213,6 +231,16 @@ export class TasksService {
 
     const dependencyTask = await this.getById(userId, dependsOnTaskId)
     if (!dependencyTask) throw new NotFoundException()
+
+    // Verify that both tasks belong to the same goal
+    try {
+      assertDependencyWithinSameGoal(
+        task.goal_id,
+        dependencyTask.goal_id,
+      )
+    } catch (err) {
+      handleInvariant(err)
+    }
 
     // Remove the dependency
     await this.repo.removeDependency(taskId, dependsOnTaskId)

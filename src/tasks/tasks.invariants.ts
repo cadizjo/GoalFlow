@@ -40,6 +40,18 @@ export function assertValidDependency(
   }
 }
 
+/// Goal consistency invariant
+export function assertDependencyWithinSameGoal(
+  taskGoalId: string,
+  dependsOnTaskGoalId: string,
+) {
+  if (taskGoalId !== dependsOnTaskGoalId) {
+    throw new InvariantViolation(
+      'Tasks may only depend on other tasks within the same goal'
+    )
+  }
+}
+
 /**
  * Cycle detection invariant
  *
@@ -57,7 +69,6 @@ export function assertNoDependencyCycle(
     )
   }
 }
-
 
 /**
  * Status transition invariants
@@ -78,6 +89,18 @@ export function assertValidTaskStatusTransition(
   if (!allowed[from].includes(to)) {
     throw new InvariantViolation(
       `Invalid task status transition: ${from} → ${to}`
+    )
+  }
+}
+
+// Subtask invariants
+export function assertValidSubtask(
+  parentGoalId: string,
+  subtaskGoalId: string,
+) {
+  if (parentGoalId !== subtaskGoalId) {
+    throw new InvariantViolation(
+      'Subtasks must belong to the same goal as their parent task'
     )
   }
 }
