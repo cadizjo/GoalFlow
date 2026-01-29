@@ -8,6 +8,7 @@ import {
   assertValidTaskStatusTransition,
   assertTaskCanBeCompleted,
   assertValidDependency,
+  assertNoDependencyCycle,
 } from './tasks.invariants';
 import { TaskStatus } from '@prisma/client';
 import { CreateTaskDto } from './dto/create-task.dto';
@@ -170,6 +171,19 @@ export class TasksService {
 
     const dependencyTask = await this.getById(userId, dependsOnTaskId)
     if (!dependencyTask) throw new NotFoundException()
+
+    // Cycle detection
+    const transitiveDeps = await this.repo.findTransitiveDependencies(dependsOnTaskId)
+
+    try {
+      assertNoDependencyCycle(
+        taskId,
+        dependsOnTaskId,
+        transitiveDeps,
+      )
+    } catch (err) {
+      handleInvariant(err)
+    }
 
     // Add the dependency
     const dep = await this.repo.addDependency(

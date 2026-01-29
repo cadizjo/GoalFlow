@@ -99,4 +99,33 @@ export class TasksRepository {
       })
       .then(Boolean); // Convert result to boolean
   }
+
+  /**
+   * Fetch all task IDs that the given task depends on (transitively)
+   */
+  async findTransitiveDependencies(taskId: string): Promise<string[]> {
+    const visited = new Set<string>() 
+    const stack = [taskId]
+
+    while (stack.length > 0) {
+      const current = stack.pop()! // Non-null assertion as stack is not empty
+
+      // Fetch direct dependencies of the current task
+      const deps = await this.prisma.taskDependency.findMany({
+        where: { task_id: current },
+        select: { depends_on_task_id: true },
+      })
+
+      // Add unvisited dependencies to the set and stack for further exploration
+      for (const dep of deps) {
+        if (!visited.has(dep.depends_on_task_id)) {
+          visited.add(dep.depends_on_task_id)
+          stack.push(dep.depends_on_task_id)
+        }
+      }
+    }
+
+    return Array.from(visited) // Convert Set to Array and return
+  }
+
 }

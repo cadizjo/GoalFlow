@@ -38,8 +38,26 @@ export function assertValidDependency(
       'Task cannot depend on itself'
     )
   }
-  // Additional checks for circular dependencies can be added here
 }
+
+/**
+ * Cycle detection invariant
+ *
+ * If task A depends on B, and B (directly or indirectly) depends on A,
+ * adding this dependency would create a cycle.
+ */
+export function assertNoDependencyCycle(
+  taskId: string,
+  dependsOnTaskId: string,
+  transitiveDependencyIds: string[],
+) {
+  if (transitiveDependencyIds.includes(taskId)) {
+    throw new InvariantViolation(
+      'Adding this dependency would create a circular dependency'
+    )
+  }
+}
+
 
 /**
  * Status transition invariants
