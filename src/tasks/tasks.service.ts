@@ -10,6 +10,8 @@ import {
   assertValidDependency,
   assertNoDependencyCycle,
   assertDependencyWithinSameGoal,
+  detectScheduleInvalidation,
+  detectScheduleExecutionRisk,
 } from './tasks.invariants';
 import { TaskStatus } from '@prisma/client';
 import { CreateTaskDto } from './dto/create-task.dto';
@@ -17,12 +19,14 @@ import { UpdateTaskDto } from './dto/update-task.dto';
 import { TasksRepository } from './tasks.repo';
 import { EventLogService } from '../event-log/event-log.service';
 import { handleInvariant } from '../common/errors/invariant-handler';
+import { ScheduleBlocksQueryService } from 'src/scheduling/scheduling.query';
 
 @Injectable()
 export class TasksService {
   constructor(
     private readonly repo: TasksRepository,
     private readonly eventLog: EventLogService,
+    private readonly scheduleBlocksQuery: ScheduleBlocksQueryService,
   ) {}
 
   // Create a new task and verify goal ownership
@@ -79,6 +83,25 @@ export class TasksService {
         )
       } catch (err) {
         handleInvariant(err)
+      }
+    }
+
+    // 3. Schedule invalidation detection
+    const hasSchedules = await this.scheduleBlocksQuery.taskHasScheduleBlocks(task.id)
+
+    if (hasSchedules) {
+      if (detectScheduleInvalidation(task, dto)) {
+        await this.eventLog.log(userId, 'task.schedule_invalidated', {
+          task_id: task.id,
+          changed_fields: Object.keys(dto),
+        })
+      }
+
+      if (detectScheduleExecutionRisk(task, dto)) {
+        await this.eventLog.log(userId, 'task.schedule_execution_risk', {
+          task_id: task.id,
+          changed_fields: Object.keys(dto),
+        })
       }
     }
 

@@ -4,11 +4,13 @@ import { TasksRepository } from './tasks.repo';
 import { TasksController } from './tasks.controller';
 import { PrismaModule } from '../prisma/prisma.module';
 import { EventLogModule } from '../event-log/event-log.module';
+import { ScheduleBlocksQueryModule } from 'src/scheduling/scheduling-query.module';
 
 @Module({
   imports: [
     PrismaModule, 
-    EventLogModule
+    EventLogModule,
+    ScheduleBlocksQueryModule
   ],
   controllers: [TasksController],
   providers: [TasksService, TasksRepository],

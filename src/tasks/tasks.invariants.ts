@@ -1,4 +1,4 @@
-import { TaskStatus } from '@prisma/client'
+import { Task, TaskStatus } from '@prisma/client'
 import { InvariantViolation } from '../common/errors/invariant-violation'
 
 /**
@@ -79,10 +79,10 @@ export function assertValidTaskStatusTransition(
 ) {
   // Define allowed transitions where keys are current statuses and values are arrays of valid next statuses
   const allowed: Record<TaskStatus, TaskStatus[]> = {
-    todo: ['in_progress'],
-    in_progress: ['done', 'blocked'],
-    blocked: ['todo'],
-    done: []
+    [TaskStatus.todo]: [TaskStatus.in_progress],
+    [TaskStatus.in_progress]: [TaskStatus.done, TaskStatus.blocked],
+    [TaskStatus.blocked]: [TaskStatus.todo],
+    [TaskStatus.done]: [],
   }
 
   // Check if the transition from 'from' to 'to' is allowed
@@ -103,4 +103,45 @@ export function assertValidSubtask(
       'Subtasks must belong to the same goal as their parent task'
     )
   }
+}
+
+/**
+ * Hard vs. soft dependency detection for scheduling
+ */
+
+export function detectScheduleInvalidation(
+  originalTask: Task,
+  updatedFields: Partial<Task>,
+): boolean {
+
+  if (
+    updatedFields.estimated_minutes !== undefined &&
+    updatedFields.estimated_minutes !== originalTask.estimated_minutes
+  ) {
+    return true
+  }
+
+  return false
+}
+
+export function detectScheduleExecutionRisk(
+  originalTask: Task,
+  updatedFields: Partial<Task>, // Partial representation of Task
+): boolean {
+
+  if (
+    updatedFields.status === TaskStatus.blocked &&
+    originalTask.status !== TaskStatus.blocked
+  ) {
+    return true
+  }
+
+  if (
+    updatedFields.priority_score !== undefined &&
+    updatedFields.priority_score !== originalTask.priority_score
+  ) {
+    return true
+  }
+
+  return false
 }

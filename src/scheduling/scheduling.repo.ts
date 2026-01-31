@@ -52,4 +52,10 @@ export class ScheduleBlocksRepository {
       },
     })
   }
+
+  countByTaskId(taskId: string): Promise<number> {
+    return this.prisma.scheduleBlock.count({
+      where: { task_id: taskId },
+    })
+  }
 }

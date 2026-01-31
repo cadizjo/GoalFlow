@@ -6,8 +6,9 @@ import { EventLogService } from '../event-log/event-log.service'
 import {
   assertValidTimeRange,
   assertNoScheduleOverlap,
-  assertTaskCanBeScheduled,
+  assertTaskIsSchedulable,
   assertScheduleBlockIsMutable,
+  assertTaskDependenciesComplete,
 } from './scheduling.invariants'
 import { handleInvariant } from '../common/errors/invariant-handler'
 import { CreateScheduleBlockDto } from './dto/create-schedule-block.dto'
@@ -44,19 +45,15 @@ export class ScheduleBlocksService {
     const ownsTask = await this.tasksRepo.goalOwnedByUser(task.goal_id, userId)
     if (!ownsTask) throw new ForbiddenException()
 
-    // 4. Validate task can be scheduled
-    const incompleteDeps =
-      await this.tasksRepo.findBlockingDependencies(task.id)
-
+    // 4. Validate task is schedulable (not completed)
     try {
-      assertTaskCanBeScheduled(task.status, incompleteDeps.length)
+      assertTaskIsSchedulable(task.status)
     } catch (err) {
       handleInvariant(err)
     }
 
     // 5. Validate no schedule overlap
-    const overlapCount =
-      await this.repo.countOverlaps(userId, start, end)
+    const overlapCount = await this.repo.countOverlaps(userId, start, end)
 
     try {
       assertNoScheduleOverlap(overlapCount)
@@ -64,8 +61,19 @@ export class ScheduleBlocksService {
       handleInvariant(err)
     }
 
-    // Create the schedule block
+    // 6. Create the schedule block
     const block = await this.repo.create(userId, dto)
+
+    // 7. SOFT dependency warning
+    const incompleteDeps = await this.tasksRepo.findBlockingDependencies(task.id)
+
+    if (incompleteDeps.length > 0) {
+      await this.eventLog.log(userId, 'schedule.blocked_but_scheduled', {
+        task_id: task.id,
+        schedule_block_id: block.id,
+        unmet_dependencies: incompleteDeps.map(d => d.depends_on_task_id),
+      })
+    }
 
     // Log the creation event
     await this.eventLog.log(userId, 'schedule.created', {
@@ -163,7 +171,16 @@ export class ScheduleBlocksService {
       handleInvariant(err)
     }
 
-    // 3. Complete block
+    // 3. HARD dependency enforcement
+    const incompleteDeps = await this.tasksRepo.findBlockingDependencies(block.task_id)
+
+    try {
+      assertTaskDependenciesComplete(incompleteDeps)
+    } catch (err) {
+      handleInvariant(err)
+    }
+
+    // 4. Complete block
     const completedBlock = await this.repo.update(id, {
       status: ScheduleStatus.completed,
       completed_at: new Date().toISOString(),
@@ -171,7 +188,7 @@ export class ScheduleBlocksService {
 
     // Optionally, you might want to update the associated task status here
 
-    // 4. Emit event
+    // 5. Emit event
     await this.eventLog.log(userId, 'schedule.completed', {
       schedule_block_id: id,
       task_id: block.task_id,

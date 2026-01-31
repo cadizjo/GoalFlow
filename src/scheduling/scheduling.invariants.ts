@@ -16,21 +16,25 @@ export function assertNoScheduleOverlap(
 }
 
 /**
- * Task must be schedulable
+ * Completed tasks cannot be scheduled
  */
-export function assertTaskCanBeScheduled(
-  taskStatus: TaskStatus,
-  incompleteDependencyCount: number,
-) {
+export function assertTaskIsSchedulable(taskStatus: TaskStatus) {
   if (taskStatus === TaskStatus.done) {
     throw new InvariantViolation(
       'Completed tasks cannot be scheduled'
     )
   }
+}
 
-  if (incompleteDependencyCount > 0) {
+/**
+ * Assert that all task dependencies are complete
+ */
+export function assertTaskDependenciesComplete(
+  incompleteDependencies: any[], // Array of incomplete dependencies
+) {
+  if (incompleteDependencies.length > 0) {
     throw new InvariantViolation(
-      'Task has unmet dependencies and cannot be scheduled'
+      'Task has incomplete dependencies'
     )
   }
 }
