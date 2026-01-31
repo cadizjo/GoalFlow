@@ -13,7 +13,4 @@ export class CreateScheduleBlockDto {
 
   @IsEnum(ScheduleSource)
   source: ScheduleSource;
-
-  @IsEnum(ScheduleStatus)
-  status: ScheduleStatus;
 }

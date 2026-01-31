@@ -1,3 +1,4 @@
+// src/scheduling/scheduling.controller.ts
 import {
   Controller,
   Post,
@@ -40,6 +41,16 @@ export class ScheduleBlocksController {
   ) {
     return this.service.update(req.user.userId, id, dto);
   }
+
+  // Mark a schedule block as completed
+  @Post(':id/complete')
+  complete(
+    @Req() req, 
+    @Param('id') id: string
+  ) {
+    return this.service.complete(req.user.userId, id)
+  }
+
 
   // Delete a schedule block by ID
   @Delete(':id')

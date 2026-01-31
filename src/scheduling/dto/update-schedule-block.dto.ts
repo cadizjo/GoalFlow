@@ -1,7 +1,24 @@
-import { PartialType } from '@nestjs/mapped-types';
-import { CreateScheduleBlockDto } from './create-schedule-block.dto';
+import { IsDateString, IsEnum, IsOptional } from 'class-validator';
+import { ScheduleSource, ScheduleStatus } from '@prisma/client';
 
-// UpdateScheduleBlockDto extends CreateScheduleBlockDto with all fields optional
-export class UpdateScheduleBlockDto extends PartialType( 
-  CreateScheduleBlockDto, // base class dto
-) {}
+export class UpdateScheduleBlockDto {
+  @IsOptional()
+  @IsDateString()
+  start_time?: string;
+
+  @IsOptional()
+  @IsDateString()
+  end_time?: string;
+
+  @IsOptional()
+  @IsEnum(ScheduleSource)
+  source?: ScheduleSource;
+
+  @IsOptional()
+  @IsEnum(ScheduleStatus)
+  status?: ScheduleStatus;
+
+  @IsOptional()
+  @IsDateString()
+  completed_at?: string;
+}

@@ -89,7 +89,6 @@ describe('ScheduleBlocks (e2e)', () => {
         start_time: start,
         end_time: end,
         source: 'manual',
-        status: 'scheduled',
       })
       .expect(201);
 
@@ -108,7 +107,6 @@ describe('ScheduleBlocks (e2e)', () => {
         start_time: start,
         end_time: end,
         source: 'manual',
-        status: 'scheduled',
       })
       .expect(201);
 
@@ -129,7 +127,6 @@ describe('ScheduleBlocks (e2e)', () => {
         start_time: start,
         end_time: end,
         source: 'manual',
-        status: 'scheduled',
       })
       .expect(201);
 
@@ -138,10 +135,10 @@ describe('ScheduleBlocks (e2e)', () => {
     const res = await request(app.getHttpServer())
       .patch(`/schedule-blocks/${blockId}`)
       .set('Authorization', `Bearer ${token}`)
-      .send({ status: 'completed' })
+      .send({ end_time: new Date('2030-01-01T11:00:00Z') })
       .expect(200);
 
-    expect(res.body.status).toBe('completed');
+    expect(res.body.end_time).toBe('2030-01-01T11:00:00.000Z');
   });
 
   it('DELETE /schedule-blocks/:id — deletes block', async () => {
@@ -153,7 +150,6 @@ describe('ScheduleBlocks (e2e)', () => {
         start_time: start,
         end_time: end,
         source: 'manual',
-        status: 'scheduled',
       })
       .expect(201);
 

@@ -15,7 +15,7 @@ export class TasksRepository {
   }
 
   // Find a task by its ID
-  findById(taskId: string) {
+  findById(taskId: string): Promise<Task | null> {
     return this.prisma.task.findUnique({
       where: { id: taskId },
       include: {
@@ -105,7 +105,7 @@ export class TasksRepository {
    */
   async findTransitiveDependencies(taskId: string): Promise<string[]> {
     const visited = new Set<string>() 
-    const stack = [taskId]
+    const stack = [taskId] // depth-first search stack
 
     while (stack.length > 0) {
       const current = stack.pop()! // Non-null assertion as stack is not empty

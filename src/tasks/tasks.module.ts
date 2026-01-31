@@ -12,5 +12,6 @@ import { EventLogModule } from '../event-log/event-log.module';
   ],
   controllers: [TasksController],
   providers: [TasksService, TasksRepository],
+  exports: [TasksRepository], // Exporting TasksRepository for use in SchedulingModule
 })
 export class TasksModule {}

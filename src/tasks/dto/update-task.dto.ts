@@ -11,8 +11,8 @@ export class UpdateTaskDto {
   estimated_minutes?: number;
 
   @IsOptional()
-  @IsNumber()
-  actual_minutes?: number;
+  @IsInt()
+  estimated_confidence?: number;
 
   @IsOptional()
   @IsNumber()
@@ -21,4 +21,8 @@ export class UpdateTaskDto {
   @IsOptional()
   @IsEnum(TaskStatus)
   status?: TaskStatus;
+
+  @IsOptional()
+  @IsNumber()
+  actual_minutes?: number;
 }

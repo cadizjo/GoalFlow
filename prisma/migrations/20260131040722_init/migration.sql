@@ -87,7 +87,8 @@ CREATE TABLE "ScheduleBlock" (
     "start_time" TIMESTAMP(3) NOT NULL,
     "end_time" TIMESTAMP(3) NOT NULL,
     "source" "ScheduleSource" NOT NULL,
-    "status" "ScheduleStatus" NOT NULL,
+    "status" "ScheduleStatus" NOT NULL DEFAULT 'scheduled',
+    "completed_at" TIMESTAMP(3),
     "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updated_at" TIMESTAMP(3) NOT NULL,
 
