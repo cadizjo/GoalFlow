@@ -12,6 +12,7 @@ import {
   assertDependencyWithinSameGoal,
   detectScheduleInvalidation,
   detectScheduleExecutionRisk,
+  assertTaskDeletable,
 } from './tasks.invariants';
 import { TaskStatus } from '@prisma/client';
 import { CreateTaskDto } from './dto/create-task.dto';
@@ -123,11 +124,13 @@ export class TasksService {
     const task = await this.getById(userId, taskId);
     if (!task) throw new NotFoundException();
 
-    // Prevent deletion of completed tasks
-    if (task.status === TaskStatus.done) {
-      throw new BadRequestException(
-        'Completed tasks cannot be deleted'
-      )
+    const incompleteDependents = await this.repo.countIncompleteDependents(taskId);
+    
+    // Validate that the task can be deleted
+    try {
+      assertTaskDeletable(task.status, incompleteDependents)
+    } catch (err) {
+      handleInvariant(err)
     }
 
     // First delete all dependencies related to the task to maintain data integrity
@@ -138,8 +141,6 @@ export class TasksService {
     await this.eventLog.log(userId, 'task.deleted', {
       task_id: taskId,
     })
-
-    // return { success: true }; // Indicate successful deletion
   }
 
   // Complete a task after verifying all invariants
@@ -273,7 +274,5 @@ export class TasksService {
       task_id: taskId,
       depends_on_task_id: dependsOnTaskId,
     })
-
-    // return { success: true }; // Indicate successful removal
   }
 }

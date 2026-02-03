@@ -27,6 +27,24 @@ export function assertTaskCanBeCompleted(
 }
 
 /**
+ * Task deletion invariants
+ */
+export function assertTaskDeletable(
+  taskStatus: TaskStatus,
+  incompleteDependentsCount: number,
+) {
+  if (taskStatus === TaskStatus.done) {
+    throw new InvariantViolation("Completed tasks cannot be deleted")
+  }
+  
+  if (incompleteDependentsCount > 0) {
+    throw new InvariantViolation(
+      'Task cannot be deleted while dependent tasks are incomplete'
+    )
+  }
+}
+
+/**
  * Dependency invariants
  */
 export function assertValidDependency(
@@ -109,6 +127,7 @@ export function assertValidSubtask(
  * Hard vs. soft dependency detection for scheduling
  */
 
+// Detect if task update invalidates existing schedule
 export function detectScheduleInvalidation(
   originalTask: Task,
   updatedFields: Partial<Task>,
@@ -124,6 +143,7 @@ export function detectScheduleInvalidation(
   return false
 }
 
+// Detect if task update introduces scheduling risk
 export function detectScheduleExecutionRisk(
   originalTask: Task,
   updatedFields: Partial<Task>, // Partial representation of Task

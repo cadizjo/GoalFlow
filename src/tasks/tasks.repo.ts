@@ -128,4 +128,15 @@ export class TasksRepository {
     return Array.from(visited) // Convert Set to Array and return
   }
 
+  // Count incomplete dependents of a task
+  async countIncompleteDependents(taskId: string): Promise<number> {
+    return this.prisma.taskDependency.count({
+      where: {
+        depends_on_task_id: taskId,
+        task: {
+          status: { not: 'done' },
+        },
+      },
+    })
+  }
 }

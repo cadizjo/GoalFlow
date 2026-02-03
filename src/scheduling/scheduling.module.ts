@@ -5,6 +5,7 @@ import { PrismaModule } from '../prisma/prisma.module';
 import { EventLogModule } from 'src/event-log/event-log.module';
 import { ScheduleBlocksRepository } from './scheduling.repo';
 import { TasksModule } from 'src/tasks/tasks.module';
+import { SchedulingTaskEventHandler } from './scheduling.task-events';
 
 @Module({
   imports: [
@@ -12,7 +13,13 @@ import { TasksModule } from 'src/tasks/tasks.module';
     EventLogModule,
     TasksModule
   ],
-  controllers: [ScheduleBlocksController],
-  providers: [ScheduleBlocksService, ScheduleBlocksRepository],
+  controllers: [
+    ScheduleBlocksController
+  ],
+  providers: [
+    ScheduleBlocksService, 
+    ScheduleBlocksRepository,
+    SchedulingTaskEventHandler
+  ],
 })
 export class ScheduleBlocksModule {}

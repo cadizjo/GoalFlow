@@ -2,7 +2,7 @@
 import { Injectable } from '@nestjs/common'
 import { PrismaService } from '../prisma/prisma.service'
 import { CreateScheduleBlockDto } from './dto/create-schedule-block.dto'
-import { Prisma, ScheduleBlock } from '@prisma/client'
+import { Prisma, ScheduleBlock, ScheduleStatus } from '@prisma/client'
 import { UpdateScheduleBlockDto } from './dto/update-schedule-block.dto'
 
 @Injectable()
@@ -56,6 +56,21 @@ export class ScheduleBlocksRepository {
   countByTaskId(taskId: string): Promise<number> {
     return this.prisma.scheduleBlock.count({
       where: { task_id: taskId },
+    })
+  }
+
+  /*
+  * Task-related scheduling operations
+  */
+
+  // Delete all future scheduled blocks for a task
+  deleteFutureBlocksForTask(taskId: string, now: Date) {
+    return this.prisma.scheduleBlock.deleteMany({
+      where: {
+        task_id: taskId,
+        status: ScheduleStatus.scheduled,
+        start_time: { gt: now },
+      },
     })
   }
 }
