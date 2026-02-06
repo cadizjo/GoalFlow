@@ -131,6 +131,8 @@ model Task {
   priority_score     Float
   status              TaskStatus @default(todo)
 
+  deleted_at         DateTime?
+
   llm_metadata       Json?
 
   /// Dependency edges where THIS task depends on others

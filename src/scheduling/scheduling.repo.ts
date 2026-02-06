@@ -68,7 +68,7 @@ export class ScheduleBlocksRepository {
     return this.prisma.scheduleBlock.deleteMany({
       where: {
         task_id: taskId,
-        status: ScheduleStatus.scheduled,
+        status: { not: ScheduleStatus.completed },
         start_time: { gt: now },
       },
     })

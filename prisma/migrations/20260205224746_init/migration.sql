@@ -64,6 +64,7 @@ CREATE TABLE "Task" (
     "actual_minutes" INTEGER,
     "priority_score" DOUBLE PRECISION NOT NULL,
     "status" "TaskStatus" NOT NULL DEFAULT 'todo',
+    "deleted_at" TIMESTAMP(3),
     "llm_metadata" JSONB,
     "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updated_at" TIMESTAMP(3) NOT NULL,

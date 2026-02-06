@@ -135,7 +135,7 @@ export class TasksService {
 
     // First delete all dependencies related to the task to maintain data integrity
     await this.repo.deleteAllDependencies(taskId);
-    await this.repo.delete(taskId);
+    await this.repo.softDelete(taskId);
 
     // Log the task deletion event
     await this.eventLog.log(userId, 'task.deleted', {

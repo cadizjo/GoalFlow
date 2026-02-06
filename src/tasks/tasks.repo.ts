@@ -16,8 +16,11 @@ export class TasksRepository {
 
   // Find a task by its ID
   findById(taskId: string): Promise<Task | null> {
-    return this.prisma.task.findUnique({
-      where: { id: taskId },
+    return this.prisma.task.findFirst({
+      where: { 
+        id: taskId,
+        deleted_at: null, // Only return non-deleted tasks
+      },
       include: {
         dependencies: true,
         dependents: true,
@@ -34,11 +37,14 @@ export class TasksRepository {
     });
   }
 
-  // Delete a task by its ID
-  delete(taskId: string): Promise<Task> {
-    return this.prisma.task.delete({
+  // Archive a task by its ID
+  softDelete(taskId: string) {
+    return this.prisma.task.update({
       where: { id: taskId },
-    });
+      data: {
+        deleted_at: new Date(),
+      },
+    })
   }
 
   // Delete all dependencies related to a task
@@ -59,6 +65,7 @@ export class TasksRepository {
       where: {
         task_id: taskId,
         depends_on_task: {
+          deleted_at: null,
           status: { not: TaskStatus.done },
         },
       },
@@ -112,8 +119,15 @@ export class TasksRepository {
 
       // Fetch direct dependencies of the current task
       const deps = await this.prisma.taskDependency.findMany({
-        where: { task_id: current },
-        select: { depends_on_task_id: true },
+        where: {
+          task_id: current,
+          depends_on_task: {
+            deleted_at: null, // Only consider non-deleted tasks
+          },
+        },
+        select: { 
+          depends_on_task_id: true 
+        },
       })
 
       // Add unvisited dependencies to the set and stack for further exploration
@@ -134,7 +148,8 @@ export class TasksRepository {
       where: {
         depends_on_task_id: taskId,
         task: {
-          status: { not: 'done' },
+          deleted_at: null,
+          status: { not: TaskStatus.done },
         },
       },
     })
