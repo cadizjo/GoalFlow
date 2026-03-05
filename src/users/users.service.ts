@@ -2,6 +2,8 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { User, Prisma } from '@prisma/client';
+import { assert } from 'console';
+import { assertEmailProvided } from './users.invariants';
 
 @Injectable()
 export class UsersService {
@@ -33,6 +35,8 @@ export class UsersService {
   }
 
   async createUser(data: Prisma.UserCreateInput): Promise<User> {
+    assertEmailProvided(data.email);
+
     return this.prisma.user.create({
       data,
     });

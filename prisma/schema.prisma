@@ -55,6 +55,8 @@ model User {
   google_credentials Json?
   preferences       Json?
 
+  deleted_at        DateTime?
+
   goals             Goal[]
   schedule_blocks   ScheduleBlock[]
   events            EventLog[]
@@ -79,6 +81,7 @@ model Goal {
   status      GoalStatus @default(active)
 
   metadata    Json?
+  deleted_at  DateTime?
 
   milestones  Milestone[]
   tasks       Task[]
@@ -101,6 +104,8 @@ model Milestone {
 
   created_at DateTime @default(now())
 
+  // ensures unique milestone order within a goal
+  @@unique([goal_id, sequence]) 
   @@index([goal_id])
 }
 
@@ -188,6 +193,7 @@ model ScheduleBlock {
   updated_at  DateTime @updatedAt
 
   @@index([user_id, start_time])
+  @@index([task_id])
 }
 
 //////////////////////

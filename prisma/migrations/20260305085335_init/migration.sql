@@ -19,6 +19,7 @@ CREATE TABLE "User" (
     "timezone" TEXT,
     "google_credentials" JSONB,
     "preferences" JSONB,
+    "deleted_at" TIMESTAMP(3),
     "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updated_at" TIMESTAMP(3) NOT NULL,
 
@@ -35,6 +36,7 @@ CREATE TABLE "Goal" (
     "category" TEXT,
     "status" "GoalStatus" NOT NULL DEFAULT 'active',
     "metadata" JSONB,
+    "deleted_at" TIMESTAMP(3),
     "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updated_at" TIMESTAMP(3) NOT NULL,
 
@@ -117,6 +119,9 @@ CREATE INDEX "Goal_user_id_idx" ON "Goal"("user_id");
 CREATE INDEX "Milestone_goal_id_idx" ON "Milestone"("goal_id");
 
 -- CreateIndex
+CREATE UNIQUE INDEX "Milestone_goal_id_sequence_key" ON "Milestone"("goal_id", "sequence");
+
+-- CreateIndex
 CREATE INDEX "Task_goal_id_idx" ON "Task"("goal_id");
 
 -- CreateIndex
@@ -124,6 +129,9 @@ CREATE INDEX "Task_milestone_id_idx" ON "Task"("milestone_id");
 
 -- CreateIndex
 CREATE INDEX "ScheduleBlock_user_id_start_time_idx" ON "ScheduleBlock"("user_id", "start_time");
+
+-- CreateIndex
+CREATE INDEX "ScheduleBlock_task_id_idx" ON "ScheduleBlock"("task_id");
 
 -- CreateIndex
 CREATE INDEX "EventLog_user_id_idx" ON "EventLog"("user_id");
