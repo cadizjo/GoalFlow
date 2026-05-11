@@ -1,98 +1,341 @@
-<p align="center">
-  <a href="http://nestjs.com/" target="blank"><img src="https://nestjs.com/img/logo-small.svg" width="120" alt="Nest Logo" /></a>
-</p>
+# GoalFlow
 
-[circleci-image]: https://img.shields.io/circleci/build/github/nestjs/nest/master?token=abc123def456
-[circleci-url]: https://circleci.com/gh/nestjs/nest
+GoalFlow is a full-stack productivity and execution platform designed to help users transform long-term goals into structured, actionable workflows.
 
-  <p align="center">A progressive <a href="http://nodejs.org" target="_blank">Node.js</a> framework for building efficient and scalable server-side applications.</p>
-    <p align="center">
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/v/@nestjs/core.svg" alt="NPM Version" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/l/@nestjs/core.svg" alt="Package License" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/dm/@nestjs/common.svg" alt="NPM Downloads" /></a>
-<a href="https://circleci.com/gh/nestjs/nest" target="_blank"><img src="https://img.shields.io/circleci/build/github/nestjs/nest/master" alt="CircleCI" /></a>
-<a href="https://discord.gg/G7Qnnhy" target="_blank"><img src="https://img.shields.io/badge/discord-online-brightgreen.svg" alt="Discord"/></a>
-<a href="https://opencollective.com/nest#backer" target="_blank"><img src="https://opencollective.com/nest/backers/badge.svg" alt="Backers on Open Collective" /></a>
-<a href="https://opencollective.com/nest#sponsor" target="_blank"><img src="https://opencollective.com/nest/sponsors/badge.svg" alt="Sponsors on Open Collective" /></a>
-  <a href="https://paypal.me/kamilmysliwiec" target="_blank"><img src="https://img.shields.io/badge/Donate-PayPal-ff3f59.svg" alt="Donate us"/></a>
-    <a href="https://opencollective.com/nest#sponsor"  target="_blank"><img src="https://img.shields.io/badge/Support%20us-Open%20Collective-41B883.svg" alt="Support us"></a>
-  <a href="https://twitter.com/nestframework" target="_blank"><img src="https://img.shields.io/twitter/follow/nestframework.svg?style=social&label=Follow" alt="Follow us on Twitter"></a>
-</p>
-  <!--[![Backers on Open Collective](https://opencollective.com/nest/backers/badge.svg)](https://opencollective.com/nest#backer)
-  [![Sponsors on Open Collective](https://opencollective.com/nest/sponsors/badge.svg)](https://opencollective.com/nest#sponsor)-->
+The system combines:
 
-## Description
+* Goal planning
+* Task management
+* Dependency-aware execution
+* Time scheduling
+* Milestone tracking
+* Event-driven observability
 
-[Nest](https://github.com/nestjs/nest) framework TypeScript starter repository.
+GoalFlow is built with a strong focus on:
 
-## Project setup
+* Domain invariants
+* Workflow correctness
+* Event-driven architecture
+* Maintainable backend design
+* Scalable testing infrastructure
 
-```bash
-$ npm install
+---
+
+# Core Features
+
+## Authentication & Users
+
+* JWT-based authentication
+* Secure password hashing with bcrypt
+* User signup and login flows
+* Ownership-based authorization
+* Immutable user identity invariants
+
+## Goals
+
+* Create and manage long-term goals
+* Deadline tracking
+* User-owned goal isolation
+* Cascading workflow organization
+
+## Tasks
+
+* CRUD task management
+* Task status lifecycle management
+* Dependency graphs between tasks
+* Completion invariants
+* Blocking dependency enforcement
+* Circular dependency prevention
+* Cross-goal dependency protection
+* Soft deletion support
+
+## Scheduling
+
+* Schedule blocks for focused execution
+* Overlap prevention
+* Dependency-aware scheduling
+* Schedule completion lifecycle
+* Mutable vs immutable schedule state enforcement
+* Scheduling conflict detection
+
+## Milestones
+
+* Goal milestone grouping
+* Sequence-based milestone organization
+* Goal-scoped milestone validation
+
+## Event Logging
+
+* Append-only audit/event log architecture
+* Event-driven observability
+* Lifecycle event tracking across modules
+* Structured metadata payloads
+* Future analytics support
+
+---
+
+# Tech Stack
+
+## Backend
+
+* TypeScript
+* NestJS
+* Prisma ORM
+* PostgreSQL
+* JWT Authentication
+
+## Testing
+
+* Jest
+* Supertest
+* End-to-end workflow testing
+* Invariant-focused integration tests
+
+---
+
+# Architecture Philosophy
+
+GoalFlow is designed around explicit business invariants.
+
+Instead of embedding business rules directly inside controllers or repositories, rules are isolated into dedicated invariant layers.
+
+Examples:
+
+* Task completion rules
+* Dependency validation
+* Schedule overlap protection
+* Status transition enforcement
+* Cross-goal relationship validation
+
+This architecture provides:
+
+* Better maintainability
+* Easier testing
+* Stronger workflow correctness
+* Clear domain boundaries
+* Safer future scaling
+
+---
+
+# Current Backend Architecture
+
+```text
+Controller
+  ↓
+Service (workflow orchestration)
+  ↓
+Invariant Layer (business rules)
+  ↓
+Repository Layer
+  ↓
+Prisma / PostgreSQL
 ```
 
-## Compile and run the project
+---
 
-```bash
-# development
-$ npm run start
+# Example Domain Invariants
 
-# watch mode
-$ npm run start:dev
+## Task Invariants
 
-# production mode
-$ npm run start:prod
+* Tasks cannot be completed through generic updates
+* Invalid task status transitions are rejected
+* Tasks cannot complete with unresolved dependencies
+* Cross-goal dependencies are forbidden
+* Circular dependencies are prevented
+* Tasks with active dependents cannot be deleted
+
+## Scheduling Invariants
+
+* Schedule blocks cannot overlap
+* Completed schedule blocks become immutable
+* Invalid time ranges are rejected
+* Completed tasks cannot be scheduled
+* Schedule completion is dependency-aware
+
+## User/Auth Invariants
+
+* Email is required and validated
+* User email is immutable
+* Password strength requirements enforced
+* Invalid credentials rejected consistently
+
+---
+
+# Testing Strategy
+
+GoalFlow emphasizes workflow-focused end-to-end testing.
+
+The project currently includes:
+
+* Reusable E2E test helpers
+* Cross-module workflow validation
+* Dependency chain testing
+* Invariant enforcement testing
+* Authorization and ownership testing
+* Scheduling lifecycle testing
+
+Example workflows tested:
+
+* Task dependency chains
+* Circular dependency rejection
+* Schedule overlap rejection
+* Task deletion cascading behavior
+* Completion lifecycle enforcement
+
+---
+
+# Work In Progress
+
+The following systems are currently under active development:
+
+## Advanced Scheduling Engine
+
+* Automatic task scheduling
+* Intelligent rescheduling
+* Schedule optimization heuristics
+* Priority-aware execution planning
+
+## Milestone Expansion
+
+* Milestone progress tracking
+* Milestone completion propagation
+* Milestone analytics
+
+## Event-Driven Analytics
+
+* Productivity analytics
+* Execution insights
+* Time estimation accuracy metrics
+* Dependency bottleneck detection
+
+## Soft Delete Infrastructure
+
+* Full archival lifecycle support
+* Historical querying
+* Recoverable entities
+
+## Background Processing
+
+* Async workflow processing
+* Queue-based event handling
+* Notification/event consumers
+
+---
+
+# Planned Future Features
+
+## AI-Assisted Planning
+
+* Intelligent task decomposition
+* Priority recommendations
+* Schedule optimization suggestions
+* Goal planning assistance
+
+## Calendar Integrations
+
+* Google Calendar integration
+* Outlook integration
+* External scheduling sync
+
+## Real-Time Collaboration
+
+* Shared goals
+* Team workflows
+* Collaborative scheduling
+* Shared milestones
+
+## Notifications
+
+* Deadline reminders
+* Dependency completion notifications
+* Schedule alerts
+* Execution risk warnings
+
+## Analytics Dashboard
+
+* Productivity metrics
+* Goal progress visualization
+* Execution heatmaps
+* Time tracking insights
+
+## Mobile Support
+
+* Native mobile applications
+* Offline scheduling
+* Push notifications
+
+---
+
+# Repository Structure
+
+```text
+src/
+├── auth/
+├── users/
+├── goals/
+├── tasks/
+├── scheduling/
+├── milestones/
+├── event-log/
+├── prisma/
+└── common/
+
+test/
+├── tasks.e2e-spec.ts
+├── scheduling.e2e-spec.ts
+└── utils/
 ```
 
-## Run tests
+---
+
+# Running the Project
+
+## Install Dependencies
 
 ```bash
-# unit tests
-$ npm run test
-
-# e2e tests
-$ npm run test:e2e
-
-# test coverage
-$ npm run test:cov
+npm install
 ```
 
-## Deployment
-
-When you're ready to deploy your NestJS application to production, there are some key steps you can take to ensure it runs as efficiently as possible. Check out the [deployment documentation](https://docs.nestjs.com/deployment) for more information.
-
-If you are looking for a cloud-based platform to deploy your NestJS application, check out [Mau](https://mau.nestjs.com), our official platform for deploying NestJS applications on AWS. Mau makes deployment straightforward and fast, requiring just a few simple steps:
+## Start Development Server
 
 ```bash
-$ npm install -g @nestjs/mau
-$ mau deploy
+npm run start:dev
 ```
 
-With Mau, you can deploy your application in just a few clicks, allowing you to focus on building features rather than managing infrastructure.
+## Run Prisma Migrations
 
-## Resources
+```bash
+npx prisma migrate dev
+```
 
-Check out a few resources that may come in handy when working with NestJS:
+## Run Tests
 
-- Visit the [NestJS Documentation](https://docs.nestjs.com) to learn more about the framework.
-- For questions and support, please visit our [Discord channel](https://discord.gg/G7Qnnhy).
-- To dive deeper and get more hands-on experience, check out our official video [courses](https://courses.nestjs.com/).
-- Deploy your application to AWS with the help of [NestJS Mau](https://mau.nestjs.com) in just a few clicks.
-- Visualize your application graph and interact with the NestJS application in real-time using [NestJS Devtools](https://devtools.nestjs.com).
-- Need help with your project (part-time to full-time)? Check out our official [enterprise support](https://enterprise.nestjs.com).
-- To stay in the loop and get updates, follow us on [X](https://x.com/nestframework) and [LinkedIn](https://linkedin.com/company/nestjs).
-- Looking for a job, or have a job to offer? Check out our official [Jobs board](https://jobs.nestjs.com).
+```bash
+npm run test
+```
 
-## Support
+## Run E2E Tests
 
-Nest is an MIT-licensed open source project. It can grow thanks to the sponsors and support by the amazing backers. If you'd like to join them, please [read more here](https://docs.nestjs.com/support).
+```bash
+npm run test:e2e
+```
 
-## Stay in touch
+---
 
-- Author - [Kamil Myśliwiec](https://twitter.com/kammysliwiec)
-- Website - [https://nestjs.com](https://nestjs.com/)
-- Twitter - [@nestframework](https://twitter.com/nestframework)
+# Design Priorities
 
-## License
+GoalFlow prioritizes:
 
-Nest is [MIT licensed](https://github.com/nestjs/nest/blob/master/LICENSE).
+1. Correctness over premature optimization
+2. Explicit domain rules over hidden behavior
+3. Workflow integrity over CRUD simplicity
+4. Scalable architecture over short-term convenience
+5. Testability as a first-class concern
+
+---
+
+# Status
+
+GoalFlow is currently in active development.
+
+The backend architecture, invariant system, workflow engine, and end-to-end testing foundation are operational and continuing to evolve toward a production-ready execution platform.
