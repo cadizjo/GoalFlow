@@ -6,19 +6,20 @@ import {
   UseGuards,
   Req,
   BadRequestException,
+  Delete,
 } from '@nestjs/common';
-import { UsersService } from './users.service';
+import { UsersRepository } from './users.repo';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { UpdateUserDto } from './dto/update-user.dto';
 
 @Controller('users')
 @UseGuards(JwtAuthGuard) // Protect all routes in this controller with JWT authentication
 export class UsersController {
-  constructor(private usersService: UsersService) {}
+  constructor(private usersRepository: UsersRepository) {}
 
   @Get('me')
   getMe(@Req() req) {
-    return this.usersService.user({ id: req.user.userId });
+    return this.usersRepository.user({ id: req.user.userId });
   }
 
   @Patch('me')
@@ -30,9 +31,14 @@ export class UsersController {
       throw new BadRequestException('No fields provided for update');
     }
 
-    return this.usersService.updateUser({
+    return this.usersRepository.updateUser({
       where: { id: req.user.userId },
       data: dto
     });
+  }
+
+  @Delete('me')
+  deleteMe(@Req() req) {
+    return this.usersRepository.deleteUser({ id: req.user.userId });
   }
 }

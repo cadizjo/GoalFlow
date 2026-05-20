@@ -1,16 +1,13 @@
-// test/auth.e2e-spec.ts
 import { Test } from '@nestjs/testing';
 import { INestApplication } from '@nestjs/common';
 import request from 'supertest';
 import { AppModule } from '../src/app.module';
 import { cleanDb } from './utils/cleanup';
+import { signupAndLogin, authHeader } from './utils/helpers';
 
-// End-to-end tests for Auth module
 describe('Auth (e2e)', () => {
   let app: INestApplication;
-  let user: { email: string; password: string; name: string };
 
-  // Initialize the NestJS application before all tests
   beforeAll(async () => {
     const moduleRef = await Test.createTestingModule({
       imports: [AppModule],
@@ -22,57 +19,119 @@ describe('Auth (e2e)', () => {
 
   beforeEach(async () => {
     await cleanDb(app);
-
-    user = {
-      email: `auth_${Date.now()}@test.com`,
-      password: 'password123',
-      name: 'Auth Tester',
-    };
   });
 
-  // Close the NestJS application after all tests
   afterAll(async () => {
     await cleanDb(app);
     await app.close();
   });
 
-  // Test user signup
-  it('POST /auth/signup — should create user', async () => {
+  // ─── Signup ────────────────────────────────────────────────────────────────
+
+  it('POST /auth/signup — creates a user and returns a token', async () => {
     const res = await request(app.getHttpServer())
       .post('/auth/signup')
-      .send(user)
+      .send({
+        email: `auth_${Date.now()}@test.com`,
+        password: 'password123',
+        name: 'Auth Tester',
+      })
       .expect(201);
 
     expect(res.body.access_token).toBeDefined();
   });
 
-  // Test user login
-  it('POST /auth/login — should login user', async () => {
-    // Ensure user exists
+  it('POST /auth/signup — rejects duplicate email', async () => {
+    const email = `auth_${Date.now()}@test.com`;
+
     await request(app.getHttpServer())
       .post('/auth/signup')
-      .send(user)
+      .send({ email, password: 'password123', name: 'Auth Tester' })
+      .expect(201);
+
+    await request(app.getHttpServer())
+      .post('/auth/signup')
+      .send({ email, password: 'password123', name: 'Auth Tester' })
+      .expect(400);
+  });
+
+  it('POST /auth/signup — rejects a weak password', async () => {
+    await request(app.getHttpServer())
+      .post('/auth/signup')
+      .send({
+        email: `auth_${Date.now()}@test.com`,
+        password: 'short',
+        name: 'Auth Tester',
+      })
+      .expect(400);
+  });
+
+  it('POST /auth/signup — rejects an invalid email', async () => {
+    await request(app.getHttpServer())
+      .post('/auth/signup')
+      .send({
+        email: 'not-an-email',
+        password: 'password123',
+        name: 'Auth Tester',
+      })
+      .expect(400);
+  });
+
+  // ─── Login ─────────────────────────────────────────────────────────────────
+
+  it('POST /auth/login — returns a token for valid credentials', async () => {
+    const email = `auth_${Date.now()}@test.com`;
+
+    await request(app.getHttpServer())
+      .post('/auth/signup')
+      .send({ email, password: 'password123', name: 'Auth Tester' })
       .expect(201);
 
     const res = await request(app.getHttpServer())
       .post('/auth/login')
-      .send({ email: user.email, password: user.password })
+      .send({ email, password: 'password123' })
       .expect(201);
 
     expect(res.body.access_token).toBeDefined();
   });
 
-  // Test login with invalid password
-  it('POST /auth/login — invalid password', async () => {
-    // Ensure user exists
+  it('POST /auth/login — rejects an invalid password', async () => {
+    const email = `auth_${Date.now()}@test.com`;
+
     await request(app.getHttpServer())
       .post('/auth/signup')
-      .send(user)
+      .send({ email, password: 'password123', name: 'Auth Tester' })
       .expect(201);
 
     await request(app.getHttpServer())
       .post('/auth/login')
-      .send({ email: user.email, password: 'wrongpassword'})
+      .send({ email, password: 'wrongpassword' })
       .expect(401);
+  });
+
+  it('POST /auth/login — rejects a non-existent user', async () => {
+    await request(app.getHttpServer())
+      .post('/auth/login')
+      .send({ email: 'ghost@test.com', password: 'password123' })
+      .expect(401);
+  });
+
+  // ─── Protected route smoke test ────────────────────────────────────────────
+
+  it('GET /users/me — rejects request without a token', async () => {
+    await request(app.getHttpServer())
+      .get('/users/me')
+      .expect(401);
+  });
+
+  it('GET /users/me — returns user for valid token', async () => {
+    const token = await signupAndLogin(app, 'auth');
+
+    const res = await request(app.getHttpServer())
+      .get('/users/me')
+      .set(authHeader(token))
+      .expect(200);
+
+    expect(res.body.email).toContain('auth_');
   });
 });

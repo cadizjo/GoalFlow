@@ -1,60 +1,73 @@
 import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
-import { UsersService } from '../users/users.service';
+import { UsersRepository } from '../users/users.repo';
+import {
+  assertValidEmail,
+  assertPasswordStrength,
+  assertUserNotAlreadyRegistered,
+  assertUserExists,
+  assertPasswordValid,
+} from './auth.invariants';
+import { handleInvariant } from '../common/errors/invariant-handler';
 
 @Injectable()
 export class AuthService {
   constructor(
-    private usersService: UsersService, // Inject UsersService to access user data
-    private jwtService: JwtService, // Inject JwtService to handle JWT operations
+    private usersRepository: UsersRepository,
+    private jwtService: JwtService,
   ) {}
 
   // User signup method
   async signup(email: string, password: string, name?: string) {
+    // Validate email and password format
+    try {
+      assertValidEmail(email)
+      assertPasswordStrength(password)
+    } catch (err) {
+      handleInvariant(err)
+    }
 
-    // Hash and salt the password before storing it
-    const password_hash = await bcrypt.hash(password, 10); 
+    // Ensure no existing user with this email
+    const existing = await this.usersRepository.user({ email })
+    try {
+      assertUserNotAlreadyRegistered(existing)
+    } catch (err) {
+      handleInvariant(err)
+    }
 
-    // Create the user in the database
-    const user = await this.usersService.createUser({
-      email,
-      name,
-      password_hash,
-    });
+    // Hash the password and create the user
+    const password_hash = await bcrypt.hash(password, 10);
+    const user = await this.usersRepository.createUser({ email, name, password_hash });
 
-    // Return a signed JWT token for the newly created user
     return this.signToken(user.id, user.email);
   }
 
   // User login method
   async login(email: string, password: string) {
+    const user = await this.usersRepository.user({ email });
 
-    // Retrieve the user by email
-    const user = await this.usersService.user({ email });
-
-    // If user not found or password hash is missing, throw an error
-    if (!user || !user.password_hash) {
-      throw new UnauthorizedException('Invalid credentials');
+    // Validate user exists and password is correct
+    try {
+      assertUserExists(user)
+    } catch (err) {
+      handleInvariant(err)
     }
 
-    // Compare the provided password with the stored password hash 
-    const valid = await bcrypt.compare(password, user.password_hash);
-    if (!valid) {
-      throw new UnauthorizedException('Invalid credentials');
+    // Compare provided password with stored hash
+    const valid = await bcrypt.compare(password, user!.password_hash!); 
+    try {
+      assertPasswordValid(valid)
+    } catch (err) {
+      handleInvariant(err)
     }
 
-    // Return a signed JWT token for the authenticated user
-    return this.signToken(user.id, user.email);
+    return this.signToken(user!.id, user!.email);
   }
 
-  // Method to sign a JWT token
+  // Sign a JWT token for the given user
   async signToken(userId: string, email: string) {
-
-    // Create the payload with user ID and email
     const payload = { sub: userId, email };
-
-    // Sign and return the JWT token
     return {
       access_token: await this.jwtService.signAsync(payload),
     };
