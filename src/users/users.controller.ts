@@ -2,43 +2,59 @@ import {
   Controller,
   Get,
   Patch,
+  Delete,
   Body,
   UseGuards,
   Req,
   BadRequestException,
-  Delete,
-} from '@nestjs/common';
-import { UsersRepository } from './users.repo';
-import { JwtAuthGuard } from '../auth/jwt-auth.guard';
-import { UpdateUserDto } from './dto/update-user.dto';
+  HttpCode,
+  HttpStatus,
+} from '@nestjs/common'
+import { UsersService } from './users.service'
+import { JwtAuthGuard } from '../auth/jwt-auth.guard'
+import { UpdateUserDto } from './dto/update-user.dto'
+import { ChangePasswordDto } from './dto/change-password.dto'
 
 @Controller('users')
-@UseGuards(JwtAuthGuard) // Protect all routes in this controller with JWT authentication
+@UseGuards(JwtAuthGuard)
 export class UsersController {
-  constructor(private usersRepository: UsersRepository) {}
+  constructor(private readonly usersService: UsersService) {}
+
+  // ─── GET /users/me ─────────────────────────────────────────────────────────
 
   @Get('me')
   getMe(@Req() req) {
-    return this.usersRepository.user({ id: req.user.userId });
+    return this.usersService.getMe(req.user.userId)
   }
+
+  // ─── PATCH /users/me ───────────────────────────────────────────────────────
 
   @Patch('me')
-  updateMe(
-    @Req() req,
-    @Body() dto: UpdateUserDto,
-  ) {
-    if (Object.keys(dto).length === 0) { // Check if any fields are provided for update
-      throw new BadRequestException('No fields provided for update');
+  updateMe(@Req() req, @Body() dto: UpdateUserDto) {
+    if (Object.keys(dto).length === 0) {
+      throw new BadRequestException('No fields provided for update')
     }
 
-    return this.usersRepository.updateUser({
-      where: { id: req.user.userId },
-      data: dto
-    });
+    return this.usersService.updateMe(req.user.userId, dto)
   }
 
+  // ─── PATCH /users/me/password ──────────────────────────────────────────────
+
+  @Patch('me/password')
+  @HttpCode(HttpStatus.OK)
+  changePassword(@Req() req, @Body() dto: ChangePasswordDto) {
+    return this.usersService.changePassword(
+      req.user.userId,
+      dto.current_password,
+      dto.new_password,
+    )
+  }
+
+  // ─── DELETE /users/me ──────────────────────────────────────────────────────
+
   @Delete('me')
+  @HttpCode(HttpStatus.OK)
   deleteMe(@Req() req) {
-    return this.usersRepository.deleteUser({ id: req.user.userId });
+    return this.usersService.deleteMe(req.user.userId)
   }
 }

@@ -29,7 +29,7 @@ export class AuthService {
     }
 
     // Ensure no existing user with this email
-    const existing = await this.usersRepository.user({ email })
+    const existing = await this.usersRepository.findUnique({ email })
     try {
       assertUserNotAlreadyRegistered(existing)
     } catch (err) {
@@ -38,14 +38,14 @@ export class AuthService {
 
     // Hash the password and create the user
     const password_hash = await bcrypt.hash(password, 10);
-    const user = await this.usersRepository.createUser({ email, name, password_hash });
+    const user = await this.usersRepository.create({ email, name, password_hash });
 
     return this.signToken(user.id, user.email);
   }
 
   // User login method
   async login(email: string, password: string) {
-    const user = await this.usersRepository.user({ email });
+    const user = await this.usersRepository.findUnique({ email });
 
     // Validate user exists and password is correct
     try {
