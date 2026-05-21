@@ -23,7 +23,11 @@ export class UsersRepository {
     return this.prisma.user.update({ where, data })
   }
 
-  async delete(where: Prisma.UserWhereUniqueInput): Promise<User> {
-    return this.prisma.user.delete({ where })
+  // Soft delete — sets deleted_at timestamp, preserves all related data
+  async softDelete(where: Prisma.UserWhereUniqueInput): Promise<User> {
+    return this.prisma.user.update({
+      where,
+      data: { deleted_at: new Date() },
+    })
   }
 }

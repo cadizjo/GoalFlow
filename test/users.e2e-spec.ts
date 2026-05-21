@@ -185,22 +185,39 @@ describe('Users (e2e)', () => {
 
   // ─── DELETE /users/me ──────────────────────────────────────────────────────
 
-  it('DELETE /users/me — requires JWT', async () => {
-    await request(app.getHttpServer())
-      .delete('/users/me')
-      .expect(401);
-  });
-  
-  it('DELETE /users/me — deletes the current user', async () => {
+  it('DELETE /users/me — soft deletes the current user', async () => {
     await request(app.getHttpServer())
       .delete('/users/me')
       .set(authHeader(token))
       .expect(200);
 
-    // Token should no longer grant access
+    // Account is deleted — further requests return 400 even with a valid token
     await request(app.getHttpServer())
       .get('/users/me')
       .set(authHeader(token))
+      .expect(400);
+  });
+
+  it('DELETE /users/me — requires JWT', async () => {
+    await request(app.getHttpServer())
+      .delete('/users/me')
+      .expect(401);
+  });
+
+  it('DELETE /users/me — prevents login after soft delete', async () => {
+    const me = await request(app.getHttpServer())
+      .get('/users/me')
+      .set(authHeader(token))
+      .expect(200);
+
+    await request(app.getHttpServer())
+      .delete('/users/me')
+      .set(authHeader(token))
+      .expect(200);
+
+    await request(app.getHttpServer())
+      .post('/auth/login')
+      .send({ email: me.body.email, password: 'password123' })
       .expect(401);
   });
 });

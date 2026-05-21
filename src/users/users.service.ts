@@ -9,6 +9,7 @@ import { EventLogService } from '../event-log/event-log.service'
 import { handleInvariant } from '../common/errors/invariant-handler'
 import {
   assertValidEmail,
+  assertUserNotDeleted,
   assertUserNotAlreadyRegistered,
   assertNameNotEmpty,
   assertNameLength,
@@ -31,6 +32,7 @@ export class UsersService {
   async getMe(userId: string) {
     const user = await this.repo.findUnique({ id: userId })
     if (!user) throw new NotFoundException('User not found')
+    assertUserNotDeleted(user.deleted_at)
     return this.stripSensitiveFields(user)
   }
 
@@ -39,8 +41,7 @@ export class UsersService {
   async updateMe(userId: string, dto: UpdateUserDto) {
     const user = await this.repo.findUnique({ id: userId })
     if (!user) throw new NotFoundException('User not found')
-
-    // Validate name if provided
+    assertUserNotDeleted(user.deleted_at)
     if (dto.name !== undefined) {
       try {
         assertNameNotEmpty(dto.name)
@@ -83,6 +84,7 @@ export class UsersService {
   ) {
     const user = await this.repo.findUnique({ id: userId })
     if (!user) throw new NotFoundException('User not found')
+    assertUserNotDeleted(user.deleted_at)
 
     // Validate new password strength
     try {
@@ -117,18 +119,23 @@ export class UsersService {
   async deleteMe(userId: string) {
     const user = await this.repo.findUnique({ id: userId })
     if (!user) throw new NotFoundException('User not found')
+    assertUserNotDeleted(user.deleted_at)
 
-    await this.repo.delete({ id: userId })
-
+    // Log before soft delete so the event is captured while the user still exists
     await this.eventLog.log(userId, 'user.deleted', {
       user_id: userId,
     })
+
+    await this.repo.softDelete({ id: userId })
   }
 
   // ─── Used by AuthService ───────────────────────────────────────────────────
 
+  // Returns null for soft-deleted users so AuthService treats them as non-existent
   async findByEmail(email: string) {
-    return this.repo.findUnique({ email })
+    const user = await this.repo.findUnique({ email })
+    if (!user || user.deleted_at !== null) return null
+    return user
   }
 
   async findById(id: string) {

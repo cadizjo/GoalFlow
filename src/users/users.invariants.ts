@@ -13,6 +13,12 @@ export function assertValidEmail(email: string) {
 /**
  * Registration invariants
  */
+export function assertUserNotDeleted(deletedAt: Date | null) {
+  if (deletedAt !== null) {
+    throw new InvariantViolation('This account has been deleted')
+  }
+}
+
 export function assertUserNotAlreadyRegistered(existingUser: unknown) {
   if (existingUser) {
     throw new InvariantViolation('A user with this email already exists')

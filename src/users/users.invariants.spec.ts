@@ -1,5 +1,6 @@
 import {
   assertValidEmail,
+  assertUserNotDeleted,
   assertUserNotAlreadyRegistered,
   assertUserOwnership,
   assertNameNotEmpty,
@@ -9,6 +10,26 @@ import {
 import { InvariantViolation } from '../common/errors/invariant-violation'
 
 describe('User invariants', () => {
+
+  describe('assertUserNotDeleted', () => {
+    it('allows access when deleted_at is null', () => {
+      expect(() =>
+        assertUserNotDeleted(null)
+      ).not.toThrow()
+    })
+
+    it('rejects access when deleted_at is set', () => {
+      expect(() =>
+        assertUserNotDeleted(new Date())
+      ).toThrow(InvariantViolation)
+    })
+
+    it('rejects with the correct message', () => {
+      expect(() =>
+        assertUserNotDeleted(new Date())
+      ).toThrow('deleted')
+    })
+  })
 
   describe('assertValidEmail', () => {
     it('allows a valid email', () => {
