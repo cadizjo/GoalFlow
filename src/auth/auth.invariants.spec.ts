@@ -1,40 +1,12 @@
 import {
-  assertValidEmail,
-  assertPasswordStrength,
-  assertUserNotAlreadyRegistered,
   assertUserExists,
   assertPasswordValid,
-  assertUserOwnership,
+  assertPasswordStrength,
 } from './auth.invariants'
 import { InvariantViolation } from '../common/errors/invariant-violation'
+import { UnauthorizedException } from '@nestjs/common';
 
 describe('Auth invariants', () => {
-
-  describe('assertValidEmail', () => {
-    it('allows a valid email', () => {
-      expect(() =>
-        assertValidEmail('user@example.com')
-      ).not.toThrow()
-    })
-
-    it('rejects an email missing the @ symbol', () => {
-      expect(() =>
-        assertValidEmail('userexample.com')
-      ).toThrow(InvariantViolation)
-    })
-
-    it('rejects an email missing a domain', () => {
-      expect(() =>
-        assertValidEmail('user@')
-      ).toThrow('Invalid email')
-    })
-
-    it('rejects an empty string', () => {
-      expect(() =>
-        assertValidEmail('')
-      ).toThrow(InvariantViolation)
-    })
-  })
 
   describe('assertPasswordStrength', () => {
     it('allows a password of 8 or more characters', () => {
@@ -62,26 +34,6 @@ describe('Auth invariants', () => {
     })
   })
 
-  describe('assertUserNotAlreadyRegistered', () => {
-    it('allows signup when no existing user is found', () => {
-      expect(() =>
-        assertUserNotAlreadyRegistered(null)
-      ).not.toThrow()
-    })
-
-    it('rejects signup when a user already exists', () => {
-      expect(() =>
-        assertUserNotAlreadyRegistered({ id: 'user-1', email: 'user@example.com' })
-      ).toThrow(InvariantViolation)
-    })
-
-    it('rejects signup when existing user is undefined', () => {
-      expect(() =>
-        assertUserNotAlreadyRegistered(undefined)
-      ).not.toThrow()
-    })
-  })
-
   describe('assertUserExists', () => {
     it('allows login when user with a password hash exists', () => {
       expect(() =>
@@ -92,10 +44,10 @@ describe('Auth invariants', () => {
     it('rejects login when user is null', () => {
       expect(() =>
         assertUserExists(null)
-      ).toThrow(InvariantViolation)
+      ).toThrow(UnauthorizedException)
     })
 
-    it('rejects login when password hash is missing', () => {
+    it('rejects login when password hash is null', () => {
       expect(() =>
         assertUserExists({ password_hash: null })
       ).toThrow('Invalid credentials')
@@ -118,33 +70,13 @@ describe('Auth invariants', () => {
     it('rejects login when password does not match', () => {
       expect(() =>
         assertPasswordValid(false)
-      ).toThrow(InvariantViolation)
+      ).toThrow(UnauthorizedException)
     })
 
-    it('rejects login with the correct message', () => {
+    it('rejects with the correct message', () => {
       expect(() =>
         assertPasswordValid(false)
       ).toThrow('Invalid credentials')
-    })
-  })
-
-  describe('assertUserOwnership', () => {
-    it('allows action when user IDs match', () => {
-      expect(() =>
-        assertUserOwnership('user-1', 'user-1')
-      ).not.toThrow()
-    })
-
-    it('rejects action when user IDs differ', () => {
-      expect(() =>
-        assertUserOwnership('user-1', 'user-2')
-      ).toThrow(InvariantViolation)
-    })
-
-    it('rejects with a permission message', () => {
-      expect(() =>
-        assertUserOwnership('user-1', 'user-2')
-      ).toThrow('permission')
     })
   })
 })

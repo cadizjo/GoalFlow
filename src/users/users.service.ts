@@ -8,10 +8,15 @@ import { UpdateUserDto } from './dto/update-user.dto'
 import { EventLogService } from '../event-log/event-log.service'
 import { handleInvariant } from '../common/errors/invariant-handler'
 import {
-  assertUserOwnership,
-  assertUserNotAlreadyRegistered,
-  assertPasswordStrength,
   assertValidEmail,
+  assertUserNotAlreadyRegistered,
+  assertNameNotEmpty,
+  assertNameLength,
+  assertNewPasswordDiffersFromCurrent,
+} from './users.invariants'
+import {
+  assertPasswordStrength,
+  assertPasswordValid,
 } from '../auth/auth.invariants'
 
 @Injectable()
@@ -35,8 +40,18 @@ export class UsersService {
     const user = await this.repo.findUnique({ id: userId })
     if (!user) throw new NotFoundException('User not found')
 
-    // If updating email, validate format and uniqueness
-    if (dto.email && dto.email !== user.email) {
+    // Validate name if provided
+    if (dto.name !== undefined) {
+      try {
+        assertNameNotEmpty(dto.name)
+        assertNameLength(dto.name)
+      } catch (err) {
+        handleInvariant(err)
+      }
+    }
+
+    // Validate email format and uniqueness if being changed
+    if (dto.email !== undefined && dto.email !== user.email) {
       try {
         assertValidEmail(dto.email)
       } catch (err) {
@@ -66,6 +81,8 @@ export class UsersService {
     currentPassword: string,
     newPassword: string,
   ) {
+    const user = await this.repo.findUnique({ id: userId })
+    if (!user) throw new NotFoundException('User not found')
 
     // Validate new password strength
     try {
@@ -74,19 +91,27 @@ export class UsersService {
       handleInvariant(err)
     }
 
-    const user = await this.repo.findUnique({ id: userId })
-    if (!user) throw new NotFoundException('User not found')
+    // Ensure new password differs from current
+    try {
+      assertNewPasswordDiffersFromCurrent(currentPassword, newPassword)
+    } catch (err) {
+      handleInvariant(err)
+    }
 
-    // Verify current password before allowing the change
+    // Verify current password is correct
     const valid = await bcrypt.compare(currentPassword, user.password_hash!)
-    if (!valid) {
-      throw new NotFoundException('Current password is incorrect')
+    try {
+      assertPasswordValid(valid)
+    } catch (err) {
+      handleInvariant(err)
     }
 
     const password_hash = await bcrypt.hash(newPassword, 10)
     await this.repo.update({ id: userId }, { password_hash })
 
-    await this.eventLog.log(userId, 'user.password_changed', { user_id: userId })
+    await this.eventLog.log(userId, 'user.password_changed', {
+      user_id: userId,
+    })
   }
 
   async deleteMe(userId: string) {
@@ -95,12 +120,13 @@ export class UsersService {
 
     await this.repo.delete({ id: userId })
 
-    await this.eventLog.log(userId, 'user.deleted', { user_id: userId})
+    await this.eventLog.log(userId, 'user.deleted', {
+      user_id: userId,
+    })
   }
 
   // ─── Used by AuthService ───────────────────────────────────────────────────
 
-  // Kept for AuthService to call during signup/login — returns full user including password_hash
   async findByEmail(email: string) {
     return this.repo.findUnique({ email })
   }

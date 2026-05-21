@@ -9,6 +9,6 @@ import { UsersService } from './users.service';
   imports: [PrismaModule, EventLogModule], // Import the Prisma module to use its services
   providers: [UsersRepository, UsersService], // Register the repository and service as providers
   controllers: [UsersController], // Register the controller
-  exports: [UsersRepository], // needed by AuthModule
+  exports: [UsersRepository, UsersService], // needed by AuthModule
 })
 export class UsersModule {}

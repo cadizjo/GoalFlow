@@ -1,26 +1,28 @@
-import { Injectable, UnauthorizedException } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
-import { UsersRepository } from '../users/users.repo';
+import { UsersService } from '../users/users.service';
+import { handleInvariant } from '../common/errors/invariant-handler';
+import {
+  assertPasswordStrength,
+  assertPasswordValid,
+  assertUserExists,
+} from './auth.invariants';
 import {
   assertValidEmail,
-  assertPasswordStrength,
   assertUserNotAlreadyRegistered,
-  assertUserExists,
-  assertPasswordValid,
-} from './auth.invariants';
-import { handleInvariant } from '../common/errors/invariant-handler';
+} from '../users/users.invariants';
 
 @Injectable()
 export class AuthService {
   constructor(
-    private usersRepository: UsersRepository,
+    private usersService: UsersService,
     private jwtService: JwtService,
   ) {}
 
   // User signup method
   async signup(email: string, password: string, name?: string) {
-    // Validate email and password format
+    // Validate email format and password strength
     try {
       assertValidEmail(email)
       assertPasswordStrength(password)
@@ -29,7 +31,7 @@ export class AuthService {
     }
 
     // Ensure no existing user with this email
-    const existing = await this.usersRepository.findUnique({ email })
+    const existing = await this.usersService.findByEmail(email)
     try {
       assertUserNotAlreadyRegistered(existing)
     } catch (err) {
@@ -38,24 +40,22 @@ export class AuthService {
 
     // Hash the password and create the user
     const password_hash = await bcrypt.hash(password, 10);
-    const user = await this.usersRepository.create({ email, name, password_hash });
+    const user = await this.usersService.createUser({ email, name, password_hash });
 
     return this.signToken(user.id, user.email);
   }
 
   // User login method
   async login(email: string, password: string) {
-    const user = await this.usersRepository.findUnique({ email });
+    const user = await this.usersService.findByEmail(email)
 
-    // Validate user exists and password is correct
     try {
       assertUserExists(user)
     } catch (err) {
       handleInvariant(err)
     }
 
-    // Compare provided password with stored hash
-    const valid = await bcrypt.compare(password, user!.password_hash!); 
+    const valid = await bcrypt.compare(password, user!.password_hash!)
     try {
       assertPasswordValid(valid)
     } catch (err) {
