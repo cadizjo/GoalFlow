@@ -32,7 +32,13 @@ export class UsersService {
   async getMe(userId: string) {
     const user = await this.repo.findUnique({ id: userId })
     if (!user) throw new NotFoundException('User not found')
-    assertUserNotDeleted(user.deleted_at)
+
+    try {
+      assertUserNotDeleted(user.deleted_at)
+    } catch (err) {
+      handleInvariant(err)
+    }
+
     return this.stripSensitiveFields(user)
   }
 
@@ -41,7 +47,13 @@ export class UsersService {
   async updateMe(userId: string, dto: UpdateUserDto) {
     const user = await this.repo.findUnique({ id: userId })
     if (!user) throw new NotFoundException('User not found')
-    assertUserNotDeleted(user.deleted_at)
+
+    try {
+      assertUserNotDeleted(user.deleted_at)
+    } catch (err) {
+      handleInvariant(err)
+    }
+
     if (dto.name !== undefined) {
       try {
         assertNameNotEmpty(dto.name)
@@ -84,7 +96,12 @@ export class UsersService {
   ) {
     const user = await this.repo.findUnique({ id: userId })
     if (!user) throw new NotFoundException('User not found')
-    assertUserNotDeleted(user.deleted_at)
+      
+    try {
+      assertUserNotDeleted(user.deleted_at)
+    } catch (err) {
+      handleInvariant(err)
+    }
 
     // Validate new password strength
     try {
@@ -119,7 +136,12 @@ export class UsersService {
   async deleteMe(userId: string) {
     const user = await this.repo.findUnique({ id: userId })
     if (!user) throw new NotFoundException('User not found')
-    assertUserNotDeleted(user.deleted_at)
+    
+    try {
+      assertUserNotDeleted(user.deleted_at)
+    } catch (err) {
+      handleInvariant(err)
+    }
 
     // Log before soft delete so the event is captured while the user still exists
     await this.eventLog.log(userId, 'user.deleted', {
