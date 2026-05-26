@@ -34,8 +34,8 @@ describe('ScheduleBlocks (e2e)', () => {
   beforeEach(async () => {
     await cleanDb(app);
     token = await signupAndLogin(app, 'schedule');
-    const goal = await createGoal(app, token);
-    goalId = goal.id;
+    const goal = await createGoal(app, token).expect(201);
+    goalId = goal.body.id;
     const task = await createTask(app, token, goalId);
     taskId = task.id;
   });

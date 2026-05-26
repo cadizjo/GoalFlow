@@ -28,23 +28,22 @@ export const authHeader = (token: string) => ({
 
 // ─── Goals ───────────────────────────────────────────────────────────────────
 
-export const createGoal = async (
+// Returns the raw supertest request so callers can chain .expect()
+// Use: await createGoal(app, token).expect(201)
+// Use: const goal = await createGoal(app, token).expect(201) → goal.body
+export const createGoal = (
   app: INestApplication,
   token: string,
   overrides: Partial<any> = {},
-): Promise<any> => {
-  const res = await request(app.getHttpServer())
+) =>
+  request(app.getHttpServer())
     .post('/goals')
     .set(authHeader(token))
     .send({
       title: `Goal ${Date.now()}`,
-      deadline: new Date().toISOString(),
+      deadline: '2030-12-31T00:00:00Z', // fixed future date so deadline invariant never triggers
       ...overrides,
-    })
-    .expect(201);
-
-  return res.body;
-};
+    });
 
 // ─── Tasks ───────────────────────────────────────────────────────────────────
 

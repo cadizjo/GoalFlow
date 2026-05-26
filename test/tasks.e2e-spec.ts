@@ -30,8 +30,8 @@ describe('Tasks (e2e)', () => {
   beforeEach(async () => {
     await cleanDb(app);
     token = await signupAndLogin(app, 'tasks');
-    const goal = await createGoal(app, token);
-    goalId = goal.id;
+    const goal = await createGoal(app, token).expect(201);
+    goalId = goal.body.id;
   });
 
   afterAll(async () => {
@@ -128,11 +128,11 @@ describe('Tasks (e2e)', () => {
   });
 
   it('rejects cross-goal dependencies', async () => {
-    const goalA = await createGoal(app, token);
-    const goalB = await createGoal(app, token);
+    const goalA = await createGoal(app, token).expect(201);
+    const goalB = await createGoal(app, token).expect(201);
 
-    const taskInGoalA = await createTask(app, token, goalA.id, { description: 'Task in Goal A' });
-    const taskInGoalB = await createTask(app, token, goalB.id, { description: 'Task in Goal B' });
+    const taskInGoalA = await createTask(app, token, goalA.body.id, { description: 'Task in Goal A' });
+    const taskInGoalB = await createTask(app, token, goalB.body.id, { description: 'Task in Goal B' });
 
     await addDependency(app, token, taskInGoalA.id, taskInGoalB.id).expect(400);
   });
