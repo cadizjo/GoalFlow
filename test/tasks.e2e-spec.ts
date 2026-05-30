@@ -188,4 +188,32 @@ describe('Tasks (e2e)', () => {
       .set(authHeader(token))
       .expect(404);
   });
+
+  it('allows valid status transition via PATCH', async () => {
+    const task = await createTask(app, token, goalId);
+
+    const res = await request(app.getHttpServer())
+      .patch(`/tasks/${task.id}`)
+      .set(authHeader(token))
+      .send({ status: 'in_progress' })
+      .expect(200);
+
+    expect(res.body.status).toBe('in_progress');
+  });
+
+  it('rejects task creation for a goal not owned by the user', async () => {
+    const otherToken = await signupAndLogin(app, 'tasks_other');
+    const otherGoal = await createGoal(app, otherToken).expect(201);
+
+    await request(app.getHttpServer())
+      .post('/tasks')
+      .set(authHeader(token))
+      .send({
+        goal_id: otherGoal.body.id,
+        description: 'Hijacked task',
+        estimated_minutes: 30,
+        priority_score: 1,
+      })
+      .expect(403);
+  });
 });

@@ -1,25 +1,24 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
-import { Prisma, Task, TaskStatus } from '@prisma/client';
+import { Task, TaskStatus } from '@prisma/client';
 import { CreateTaskDto } from './dto/create-task.dto';
 import { UpdateTaskDto } from './dto/update-task.dto';
 
-// Repository for task-related database operations
 @Injectable()
 export class TasksRepository {
   constructor(private prisma: PrismaService) {}
 
-  // Create a new task
+  // ─── Tasks ─────────────────────────────────────────────────────────────────
+
   create(data: CreateTaskDto): Promise<Task> {
     return this.prisma.task.create({ data });
   }
 
-  // Find a task by its ID
   findById(taskId: string): Promise<Task | null> {
     return this.prisma.task.findFirst({
-      where: { 
+      where: {
         id: taskId,
-        deleted_at: null, // Only return non-deleted tasks
+        deleted_at: null,
       },
       include: {
         dependencies: true,
@@ -29,7 +28,16 @@ export class TasksRepository {
     });
   }
 
-  // Update an existing task
+  findIncompleteByGoal(goalId: string): Promise<Task[]> {
+    return this.prisma.task.findMany({
+      where: {
+        goal_id: goalId,
+        status: { not: TaskStatus.done },
+        deleted_at: null,
+      },
+    });
+  }
+
   update(taskId: string, data: UpdateTaskDto): Promise<Task> {
     return this.prisma.task.update({
       where: { id: taskId },
@@ -37,17 +45,15 @@ export class TasksRepository {
     });
   }
 
-  // Archive a task by its ID
   softDelete(taskId: string) {
     return this.prisma.task.update({
       where: { id: taskId },
-      data: {
-        deleted_at: new Date(),
-      },
-    })
+      data: { deleted_at: new Date() },
+    });
   }
 
-  // Delete all dependencies related to a task
+  // ─── Dependencies ──────────────────────────────────────────────────────────
+
   deleteAllDependencies(taskId: string) {
     return this.prisma.taskDependency.deleteMany({
       where: {
@@ -59,7 +65,6 @@ export class TasksRepository {
     });
   }
 
-  // Find dependencies that are blocking the completion of a task
   findBlockingDependencies(taskId: string) {
     return this.prisma.taskDependency.findMany({
       where: {
@@ -69,13 +74,10 @@ export class TasksRepository {
           status: { not: TaskStatus.done },
         },
       },
-      include: {
-        depends_on_task: true,
-      },
+      include: { depends_on_task: true },
     });
   }
 
-  // Add a dependency between two tasks
   addDependency(taskId: string, dependsOnTaskId: string) {
     return this.prisma.taskDependency.create({
       data: {
@@ -85,7 +87,6 @@ export class TasksRepository {
     });
   }
 
-  // Remove a dependency between two tasks
   removeDependency(taskId: string, dependsOnTaskId: string) {
     return this.prisma.taskDependency.delete({
       where: {
@@ -97,40 +98,21 @@ export class TasksRepository {
     });
   }
 
-  // Check if a goal is owned by a specific user
-  goalOwnedByUser(goalId: string, userId: string): Promise<boolean> {
-    return this.prisma.goal
-      .findFirst({
-        where: { id: goalId, user_id: userId },
-        select: { id: true }, // Only select the ID for efficiency
-      })
-      .then(Boolean); // Convert result to boolean
-  }
-
-  /**
-   * Fetch all task IDs that the given task depends on (transitively)
-   */
   async findTransitiveDependencies(taskId: string): Promise<string[]> {
-    const visited = new Set<string>() 
+    const visited = new Set<string>()
     const stack = [taskId] // depth-first search stack
 
     while (stack.length > 0) {
-      const current = stack.pop()! // Non-null assertion as stack is not empty
+      const current = stack.pop()!
 
-      // Fetch direct dependencies of the current task
       const deps = await this.prisma.taskDependency.findMany({
         where: {
           task_id: current,
-          depends_on_task: {
-            deleted_at: null, // Only consider non-deleted tasks
-          },
+          depends_on_task: { deleted_at: null },
         },
-        select: { 
-          depends_on_task_id: true 
-        },
+        select: { depends_on_task_id: true },
       })
 
-      // Add unvisited dependencies to the set and stack for further exploration
       for (const dep of deps) {
         if (!visited.has(dep.depends_on_task_id)) {
           visited.add(dep.depends_on_task_id)
@@ -139,11 +121,10 @@ export class TasksRepository {
       }
     }
 
-    return Array.from(visited) // Convert Set to Array and return
+    return Array.from(visited)
   }
 
-  // Count incomplete dependents of a task
-  async countIncompleteDependents(taskId: string): Promise<number> {
+  countIncompleteDependents(taskId: string): Promise<number> {
     return this.prisma.taskDependency.count({
       where: {
         depends_on_task_id: taskId,
@@ -152,6 +133,17 @@ export class TasksRepository {
           status: { not: TaskStatus.done },
         },
       },
-    })
+    });
+  }
+
+  // ─── Goal ownership ────────────────────────────────────────────────────────
+
+  goalOwnedByUser(goalId: string, userId: string): Promise<boolean> {
+    return this.prisma.goal
+      .findFirst({
+        where: { id: goalId, user_id: userId, deleted_at: null },
+        select: { id: true },
+      })
+      .then(Boolean);
   }
 }
