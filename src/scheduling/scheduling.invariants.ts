@@ -1,13 +1,21 @@
-// src/scheduling/scheduling.invariants.ts
-import { ScheduleStatus, TaskStatus } from '@prisma/client'
+import { ScheduleStatus, TaskDependency, TaskStatus } from '@prisma/client'
 import { InvariantViolation } from '../common/errors/invariant-violation'
 
 /**
- * No overlapping schedule blocks (per user)
+ * Time range invariants
  */
-export function assertNoScheduleOverlap(
-  overlappingCount: number,
-) {
+export function assertValidTimeRange(start: Date, end: Date) {
+  if (start >= end) {
+    throw new InvariantViolation(
+      'Schedule block start_time must be before end_time'
+    )
+  }
+}
+
+/**
+ * Overlap invariants
+ */
+export function assertNoScheduleOverlap(overlappingCount: number) {
   if (overlappingCount !== 0) {
     throw new InvariantViolation(
       'Schedule block overlaps with an existing block'
@@ -16,52 +24,32 @@ export function assertNoScheduleOverlap(
 }
 
 /**
- * Completed tasks cannot be scheduled
+ * Task schedulability invariants
  */
 export function assertTaskIsSchedulable(taskStatus: TaskStatus) {
   if (taskStatus === TaskStatus.done) {
-    throw new InvariantViolation(
-      'Completed tasks cannot be scheduled'
-    )
+    throw new InvariantViolation('Completed tasks cannot be scheduled')
   }
 }
 
 /**
- * Assert that all task dependencies are complete
+ * Dependency invariants
  */
 export function assertTaskDependenciesComplete(
-  incompleteDependencies: any[], // Array of incomplete dependencies
+  incompleteDependencies: TaskDependency[],
 ) {
   if (incompleteDependencies.length > 0) {
-    throw new InvariantViolation(
-      'Task has incomplete dependencies'
-    )
+    throw new InvariantViolation('Task has incomplete dependencies')
   }
 }
 
 /**
- * Completed schedule blocks are immutable
+ * Mutability invariants
  */
-export function assertScheduleBlockIsMutable(
-  status: ScheduleStatus,
-) {
+export function assertScheduleBlockIsMutable(status: ScheduleStatus) {
   if (status === ScheduleStatus.completed) {
     throw new InvariantViolation(
       'Completed schedule blocks cannot be modified'
-    )
-  }
-}
-
-/**
- * Time range must be valid
- */
-export function assertValidTimeRange(
-  start: Date,
-  end: Date,
-) {
-  if (start >= end) {
-    throw new InvariantViolation(
-      'Schedule block start_time must be before end_time'
     )
   }
 }
