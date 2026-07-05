@@ -168,4 +168,42 @@ describe('ScheduleBlocks (e2e)', () => {
 
     expect(res.body.find((b: any) => b.id === block.body.id)).toBeUndefined();
   });
+
+  it('requires JWT', async () => {
+    await request(app.getHttpServer())
+      .get('/schedule-blocks')
+      .expect(401);
+  });
+
+  it('rejects creating a schedule block for another user\'s task', async () => {
+    const otherToken = await signupAndLogin(app, 'schedule_other');
+    const otherGoal = await createGoal(app, otherToken).expect(201);
+    const otherTask = await createTask(app, otherToken, otherGoal.body.id);
+
+    await createScheduleBlock(app, token, otherTask.id).expect(403);
+  });
+
+  it('rejects completing a schedule block owned by another user', async () => {
+    const otherToken = await signupAndLogin(app, 'schedule_other');
+    const otherGoal = await createGoal(app, otherToken).expect(201);
+    const otherTask = await createTask(app, otherToken, otherGoal.body.id);
+    const otherBlock = await createScheduleBlock(app, otherToken, otherTask.id).expect(201);
+
+    await request(app.getHttpServer())
+      .post(`/schedule-blocks/${otherBlock.body.id}/complete`)
+      .set(authHeader(token))
+      .expect(403);
+  });
+
+  it('rejects deleting a completed schedule block', async () => {
+    const createRes = await createScheduleBlock(app, token, taskId).expect(201);
+    const blockId = createRes.body.id;
+
+    await completeScheduleBlock(app, token, blockId).expect(201);
+
+    await request(app.getHttpServer())
+      .delete(`/schedule-blocks/${blockId}`)
+      .set(authHeader(token))
+      .expect(400);
+  });
 });
