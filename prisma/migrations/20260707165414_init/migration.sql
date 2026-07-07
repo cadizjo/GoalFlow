@@ -49,7 +49,9 @@ CREATE TABLE "Milestone" (
     "goal_id" TEXT NOT NULL,
     "title" TEXT NOT NULL,
     "sequence" INTEGER NOT NULL,
+    "deleted_at" TIMESTAMP(3),
     "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updated_at" TIMESTAMP(3) NOT NULL,
 
     CONSTRAINT "Milestone_pkey" PRIMARY KEY ("id")
 );

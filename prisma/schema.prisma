@@ -102,7 +102,10 @@ model Milestone {
 
   tasks      Task[]
 
+  deleted_at DateTime?
+
   created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
 
   // ensures unique milestone order within a goal
   @@unique([goal_id, sequence]) 
