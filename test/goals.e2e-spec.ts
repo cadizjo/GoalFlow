@@ -3,7 +3,7 @@ import { INestApplication } from '@nestjs/common';
 import request from 'supertest';
 import { AppModule } from '../src/app.module';
 import { cleanDb } from './utils/cleanup';
-import { signupAndLogin, authHeader, createGoal } from './utils/helpers';
+import { signupAndLogin, authHeader, createGoal, createTask, completeTask, createScheduleBlock } from './utils/helpers';
 
 describe('Goals (e2e)', () => {
   let app: INestApplication;
@@ -290,5 +290,61 @@ describe('Goals (e2e)', () => {
 
     expect(res.body).toHaveProperty('message');
     expect(res.body.goalId).toBe(goal.body.id);
+  });
+
+  // ─── Cascade deletions ─────────────────────────────────────────────────────
+
+  it('DELETE /goals/:id — soft deletes incomplete tasks when goal is deleted', async () => {
+    const goal = await createGoal(app, token).expect(201);
+    const task = await createTask(app, token, goal.body.id);
+
+    await request(app.getHttpServer())
+      .delete(`/goals/${goal.body.id}`)
+      .set(authHeader(token))
+      .expect(200);
+
+    // Task should no longer be accessible
+    await request(app.getHttpServer())
+      .get(`/tasks/${task.id}`)
+      .set(authHeader(token))
+      .expect(404);
+  });
+
+  it('DELETE /goals/:id — does not soft delete completed tasks when goal is deleted', async () => {
+    const goal = await createGoal(app, token).expect(201);
+    const task = await createTask(app, token, goal.body.id);
+
+    await completeTask(app, token, task.id, 30).expect(201);
+
+    await request(app.getHttpServer())
+      .delete(`/goals/${goal.body.id}`)
+      .set(authHeader(token))
+      .expect(200);
+
+    // Completed task is excluded from cascade — still accessible
+    const res = await request(app.getHttpServer())
+      .get(`/tasks/${task.id}`)
+      .set(authHeader(token))
+      .expect(200);
+
+    expect(res.body.status).toBe('done');
+  });
+
+  it('DELETE /goals/:id — deletes future schedule blocks for cascaded tasks', async () => {
+    const goal = await createGoal(app, token).expect(201);
+    const task = await createTask(app, token, goal.body.id);
+    const block = await createScheduleBlock(app, token, task.id).expect(201);
+
+    await request(app.getHttpServer())
+      .delete(`/goals/${goal.body.id}`)
+      .set(authHeader(token))
+      .expect(200);
+
+    const res = await request(app.getHttpServer())
+      .get('/schedule-blocks')
+      .set(authHeader(token))
+      .expect(200);
+
+    expect(res.body.find((b: any) => b.id === block.body.id)).toBeUndefined();
   });
 });

@@ -19,7 +19,7 @@ import { TasksGoalEventHandler } from './tasks.goal-events';
   providers: [
     TasksService, 
     TasksRepository,
-    // TasksGoalEventHandler
+    TasksGoalEventHandler
   ],
   exports: [
     TasksRepository

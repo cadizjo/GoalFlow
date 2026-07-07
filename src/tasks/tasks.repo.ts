@@ -100,7 +100,7 @@ export class TasksRepository {
 
   async findTransitiveDependencies(taskId: string): Promise<string[]> {
     const visited = new Set<string>()
-    const stack = [taskId] // depth-first search stack
+    const stack = [taskId]
 
     while (stack.length > 0) {
       const current = stack.pop()!
@@ -141,9 +141,16 @@ export class TasksRepository {
   goalOwnedByUser(goalId: string, userId: string): Promise<boolean> {
     return this.prisma.goal
       .findFirst({
-        where: { id: goalId, user_id: userId, deleted_at: null },
+        where: { id: goalId, user_id: userId },
         select: { id: true },
       })
       .then(Boolean);
+  }
+
+  async findGoalById(goalId: string) {
+    return this.prisma.goal.findUnique({
+      where: { id: goalId },
+      select: { id: true, deleted_at: true, status: true },
+    })
   }
 }

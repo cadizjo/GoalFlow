@@ -136,15 +136,15 @@ export class GoalsService {
       handleInvariant(err)
     }
 
-    const incompleteTaskCount = await this.repo.countIncompleteTasks(goalId)
     try {
-      assertGoalDeletable(goal.status, incompleteTaskCount)
+      assertGoalDeletable(goal.status)
     } catch (err) {
       handleInvariant(err)
     }
 
     await this.eventLog.log(userId, 'goal.deleted', {
       goal_id: goalId,
+      user_id: userId,
     })
 
     await this.repo.softDelete(goalId)

@@ -1,8 +1,8 @@
 import {
   Injectable,
   ForbiddenException,
-  BadRequestException,
   NotFoundException,
+  BadRequestException,
 } from '@nestjs/common';
 import {
   assertValidTaskStatusTransition,
@@ -14,6 +14,7 @@ import {
   detectScheduleExecutionRisk,
   assertTaskDeletable,
 } from './tasks.invariants';
+import { assertGoalIsActive } from '../goals/goals.invariants';
 import { TaskStatus } from '@prisma/client';
 import { CreateTaskDto } from './dto/create-task.dto';
 import { UpdateTaskDto } from './dto/update-task.dto';
@@ -30,9 +31,21 @@ export class TasksService {
     private readonly scheduleBlocksQuery: ScheduleBlocksQueryService,
   ) {}
 
+  // ─── Helpers ───────────────────────────────────────────────────────────────
+
+  // Fetch the goal and assert it is still active (not deleted or completed)
+  private async assertGoalActive(goalId: string) {
+    const goal = await this.repo.findGoalById(goalId)
+    if (!goal) throw new NotFoundException('Goal not found')
+    try {
+      assertGoalIsActive(goal.deleted_at, goal.status as any)
+    } catch (err) {
+      handleInvariant(err)
+    }
+  }
+
   // ─── Queries ───────────────────────────────────────────────────────────────
 
-  // Get a task by ID and verify goal ownership — throws if not found or not owned
   async getById(userId: string, taskId: string) {
     const task = await this.repo.findById(taskId);
     if (!task) throw new NotFoundException();
@@ -49,6 +62,8 @@ export class TasksService {
     const ownsGoal = await this.repo.goalOwnedByUser(dto.goal_id, userId);
     if (!ownsGoal) throw new ForbiddenException();
 
+    await this.assertGoalActive(dto.goal_id);
+
     const task = await this.repo.create(dto);
 
     await this.eventLog.log(userId, 'task.created', {
@@ -62,14 +77,14 @@ export class TasksService {
   async update(userId: string, taskId: string, dto: UpdateTaskDto) {
     const task = await this.getById(userId, taskId);
 
-    // Prevent completion via PATCH — must use /complete endpoint
+    await this.assertGoalActive(task.goal_id);
+
     if (dto.status === TaskStatus.done) {
       throw new BadRequestException(
         'Tasks must be completed using the complete endpoint',
       );
     }
 
-    // Validate status transition if status is being updated
     if (dto.status && dto.status !== task.status) {
       try {
         assertValidTaskStatusTransition(task.status, dto.status);
@@ -78,7 +93,6 @@ export class TasksService {
       }
     }
 
-    // Detect schedule impact and log events if schedule blocks exist
     const hasSchedules = await this.scheduleBlocksQuery.taskHasScheduleBlocks(task.id);
 
     if (hasSchedules) {
@@ -110,6 +124,8 @@ export class TasksService {
   async delete(userId: string, taskId: string) {
     const task = await this.getById(userId, taskId);
 
+    await this.assertGoalActive(task.goal_id);
+
     const incompleteDependents = await this.repo.countIncompleteDependents(taskId);
 
     try {
@@ -118,7 +134,6 @@ export class TasksService {
       handleInvariant(err);
     }
 
-    // Delete dependencies first to maintain referential integrity
     await this.repo.deleteAllDependencies(taskId);
     await this.repo.softDelete(taskId);
 
@@ -129,6 +144,8 @@ export class TasksService {
 
   async complete(userId: string, taskId: string, actualMinutes: number) {
     const task = await this.getById(userId, taskId);
+
+    await this.assertGoalActive(task.goal_id);
 
     const blockingDeps = await this.repo.findBlockingDependencies(taskId);
 
@@ -163,6 +180,9 @@ export class TasksService {
     const task = await this.getById(userId, taskId);
     const dependencyTask = await this.getById(userId, dependsOnTaskId);
 
+    // Both tasks share the same goal (enforced below), so one active check suffices
+    await this.assertGoalActive(task.goal_id);
+
     try {
       assertDependencyWithinSameGoal(task.goal_id, dependencyTask.goal_id);
     } catch (err) {
@@ -190,6 +210,8 @@ export class TasksService {
   async removeDependency(userId: string, taskId: string, dependsOnTaskId: string) {
     const task = await this.getById(userId, taskId);
     const dependencyTask = await this.getById(userId, dependsOnTaskId);
+
+    await this.assertGoalActive(task.goal_id);
 
     try {
       assertDependencyWithinSameGoal(task.goal_id, dependencyTask.goal_id);

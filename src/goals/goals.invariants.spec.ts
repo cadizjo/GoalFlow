@@ -2,6 +2,7 @@ import { GoalStatus } from '@prisma/client'
 import {
   assertGoalOwnedByUser,
   assertGoalNotDeleted,
+  assertGoalIsActive,
   assertGoalDeletable,
   assertValidGoalStatusTransition,
   assertDeadlineInFuture,
@@ -53,23 +54,55 @@ describe('Goal invariants', () => {
     })
   })
 
-  describe('assertGoalDeletable', () => {
-    it('allows deletion of an active goal with no incomplete tasks', () => {
+  describe('assertGoalIsActive', () => {
+    it('allows access when goal is active and not deleted', () => {
       expect(() =>
-        assertGoalDeletable(GoalStatus.active, 0)
+        assertGoalIsActive(null, GoalStatus.active)
+      ).not.toThrow()
+    })
+
+    it('allows access when goal is at_risk and not deleted', () => {
+      expect(() =>
+        assertGoalIsActive(null, GoalStatus.at_risk)
+      ).not.toThrow()
+    })
+
+    it('rejects when goal is soft-deleted', () => {
+      expect(() =>
+        assertGoalIsActive(new Date(), GoalStatus.active)
+      ).toThrow(InvariantViolation)
+    })
+
+    it('rejects when goal is completed', () => {
+      expect(() =>
+        assertGoalIsActive(null, GoalStatus.completed)
+      ).toThrow('completed')
+    })
+
+    it('rejects deleted message correctly', () => {
+      expect(() =>
+        assertGoalIsActive(new Date(), GoalStatus.active)
+      ).toThrow('deleted')
+    })
+  })
+
+  describe('assertGoalDeletable', () => {
+    it('allows deletion of an active goal', () => {
+      expect(() =>
+        assertGoalDeletable(GoalStatus.active)
+      ).not.toThrow()
+    })
+
+    it('allows deletion of an at_risk goal', () => {
+      expect(() =>
+        assertGoalDeletable(GoalStatus.at_risk)
       ).not.toThrow()
     })
 
     it('rejects deletion of a completed goal', () => {
       expect(() =>
-        assertGoalDeletable(GoalStatus.completed, 0)
+        assertGoalDeletable(GoalStatus.completed)
       ).toThrow('Completed goals')
-    })
-
-    it('rejects deletion when incomplete tasks exist', () => {
-      expect(() =>
-        assertGoalDeletable(GoalStatus.active, 3)
-      ).toThrow('incomplete tasks')
     })
   })
 

@@ -14,6 +14,18 @@ export function assertGoalOwnedByUser(
 }
 
 /**
+ * Goal activity invariants
+ */
+export function assertGoalIsActive(deletedAt: Date | null, status: GoalStatus) {
+  if (deletedAt !== null) {
+    throw new InvariantViolation('This goal has been deleted')
+  }
+  if (status === GoalStatus.completed) {
+    throw new InvariantViolation('This goal has been completed and cannot be modified')
+  }
+}
+
+/**
  * Soft delete invariants
  */
 export function assertGoalNotDeleted(deletedAt: Date | null) {
@@ -25,17 +37,9 @@ export function assertGoalNotDeleted(deletedAt: Date | null) {
 /**
  * Deletion invariants
  */
-export function assertGoalDeletable(
-  status: GoalStatus,
-  incompleteTaskCount: number,
-) {
+export function assertGoalDeletable(status: GoalStatus) {
   if (status === GoalStatus.completed) {
     throw new InvariantViolation('Completed goals cannot be deleted')
-  }
-  if (incompleteTaskCount > 0) {
-    throw new InvariantViolation(
-      'Goal cannot be deleted while it has incomplete tasks'
-    )
   }
 }
 
