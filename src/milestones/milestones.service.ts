@@ -1,95 +1,140 @@
-import { Injectable, ForbiddenException, NotFoundException } from '@nestjs/common';
-import { PrismaService } from '../prisma/prisma.service';
-import { CreateMilestoneDto } from './dto/create-milestone.dto';
-import { UpdateMilestoneDto } from './dto/update-milestone.dto';
+import {
+  Injectable,
+  ForbiddenException,
+  NotFoundException,
+} from '@nestjs/common'
+import { MilestonesRepository } from './milestones.repo'
+import { CreateMilestoneDto } from './dto/create-milestone.dto'
+import { UpdateMilestoneDto } from './dto/update-milestone.dto'
+import { EventLogService } from '../event-log/event-log.service'
+import { handleInvariant } from '../common/errors/invariant-handler'
+import { assertGoalIsActive } from '../goals/goals.invariants'
+import {
+  assertMilestoneTitleNotEmpty,
+  assertMilestoneTitleLength,
+  assertSequenceNotTaken,
+} from './milestones.invariants'
 
 @Injectable()
 export class MilestonesService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private readonly repo: MilestonesRepository,
+    private readonly eventLog: EventLogService,
+  ) {}
 
-  // Create a new milestone under a specific goal for a user
-  async create(
-    userId: string,
-    goalId: string,
-    dto: CreateMilestoneDto,
-  ) {
-    // Ensure goal belongs to user
-    const goal = await this.prisma.goal.findFirst({
-      where: { id: goalId, user_id: userId },
-    });
+  // ─── Helpers ───────────────────────────────────────────────────────────────
 
-    if (!goal) {
-      throw new ForbiddenException('Goal not found or access denied');
-    }
-
-    // Auto-assign sequence if not provided
-    const sequence =
-      dto.sequence ?? // if sequence not provided
-      (await this.prisma.milestone.count({ where: { goal_id: goalId } })); // count existing milestones
-
-    return this.prisma.milestone.create({
-      data: {
-        goal_id: goalId,
-        title: dto.title,
-        sequence,
-      },
-    });
+  private async getMilestone(userId: string, milestoneId: string) {
+    const milestone = await this.repo.findById(milestoneId)
+    if (!milestone) throw new NotFoundException('Milestone not found')
+    if (milestone.goal.user_id !== userId) throw new ForbiddenException()
+    return milestone
   }
 
-  // Retrieve all milestones for a specific goal and user
+  private async getActiveGoalForUser(goalId: string, userId: string) {
+    const goal = await this.repo.findGoalForUser(goalId, userId)
+    if (!goal) throw new ForbiddenException()
+
+    try {
+      assertGoalIsActive(goal.deleted_at, goal.status as any)
+    } catch (err) {
+      handleInvariant(err)
+    }
+
+    return goal
+  }
+
+  // ─── Queries ───────────────────────────────────────────────────────────────
+
   async findAllForGoal(userId: string, goalId: string) {
-    const goal = await this.prisma.goal.findFirst({
-      where: { id: goalId, user_id: userId },
-    });
-
-    if (!goal) {
-      throw new ForbiddenException('Goal not found or access denied');
-    }
-
-    return this.prisma.milestone.findMany({
-      where: { goal_id: goalId },
-      orderBy: { sequence: 'asc' },
-    });
+    await this.getActiveGoalForUser(goalId, userId)
+    return this.repo.findAllByGoal(goalId)
   }
 
-  // Update a specific milestone for a user
+  // ─── Mutations ─────────────────────────────────────────────────────────────
+
+  async create(userId: string, goalId: string, dto: CreateMilestoneDto) {
+    await this.getActiveGoalForUser(goalId, userId)
+
+    try {
+      assertMilestoneTitleNotEmpty(dto.title)
+      assertMilestoneTitleLength(dto.title)
+    } catch (err) {
+      handleInvariant(err)
+    }
+
+    // Auto-assign next sequence if not provided — count excludes soft-deleted
+    const sequence = dto.sequence ?? await this.repo.countByGoal(goalId)
+
+    const isTaken = await this.repo.sequenceExists(goalId, sequence)
+    try {
+      assertSequenceNotTaken(isTaken)
+    } catch (err) {
+      handleInvariant(err)
+    }
+
+    const milestone = await this.repo.create(goalId, { ...dto, sequence })
+
+    await this.eventLog.log(userId, 'milestone.created', {
+      milestone_id: milestone.id,
+      goal_id: goalId,
+      sequence,
+    })
+
+    return milestone
+  }
+
   async update(userId: string, milestoneId: string, dto: UpdateMilestoneDto) {
-    const milestone = await this.prisma.milestone.findUnique({
-      where: { id: milestoneId },
-      include: { goal: true },
-    });
+    const milestone = await this.getMilestone(userId, milestoneId)
 
-    if (!milestone) {
-      throw new NotFoundException('Milestone not found');
+    try {
+      assertGoalIsActive(milestone.goal.deleted_at, milestone.goal.status as any)
+    } catch (err) {
+      handleInvariant(err)
     }
 
-    if (milestone.goal.user_id !== userId) {
-      throw new ForbiddenException('Access denied');
+    if (dto.title !== undefined) {
+      try {
+        assertMilestoneTitleNotEmpty(dto.title)
+        assertMilestoneTitleLength(dto.title)
+      } catch (err) {
+        handleInvariant(err)
+      }
     }
 
-    return this.prisma.milestone.update({
-      where: { id: milestoneId },
-      data: dto,
-    });
+    if (dto.sequence !== undefined) {
+      const isTaken = await this.repo.sequenceExists(milestone.goal_id, dto.sequence, milestoneId)
+      try {
+        assertSequenceNotTaken(isTaken)
+      } catch (err) {
+        handleInvariant(err)
+      }
+    }
+
+    const updated = await this.repo.update(milestoneId, dto)
+
+    await this.eventLog.log(userId, 'milestone.updated', {
+      milestone_id: milestoneId,
+      changes: dto,
+    })
+
+    return updated
   }
 
-  // Delete a specific milestone for a user
   async remove(userId: string, milestoneId: string) {
-    const milestone = await this.prisma.milestone.findUnique({
-      where: { id: milestoneId },
-      include: { goal: true },
-    });
+    const milestone = await this.getMilestone(userId, milestoneId)
 
-    if (!milestone) {
-      throw new NotFoundException('Milestone not found');
+    try {
+      assertGoalIsActive(milestone.goal.deleted_at, milestone.goal.status as any)
+    } catch (err) {
+      handleInvariant(err)
     }
 
-    if (milestone.goal.user_id !== userId) {
-      throw new ForbiddenException('Access denied');
-    }
+    await this.repo.softDelete(milestoneId)
 
-    return this.prisma.milestone.delete({
-      where: { id: milestoneId },
-    });
+    await this.eventLog.log(userId, 'milestone.deleted', {
+      milestone_id: milestoneId,
+      goal_id: milestone.goal_id,
+    })
   }
 }

@@ -1,11 +1,13 @@
-import { Module } from '@nestjs/common';
-import { MilestonesService } from './milestones.service';
-import { MilestonesController } from './milestones.controller';
-import { PrismaModule } from '../prisma/prisma.module';
+import { Module } from '@nestjs/common'
+import { MilestonesService } from './milestones.service'
+import { MilestonesController } from './milestones.controller'
+import { MilestonesRepository } from './milestones.repo'
+import { PrismaModule } from '../prisma/prisma.module'
+import { EventLogModule } from '../event-log/event-log.module'
 
 @Module({
-  imports: [PrismaModule],
+  imports: [PrismaModule, EventLogModule],
   controllers: [MilestonesController],
-  providers: [MilestonesService],
+  providers: [MilestonesService, MilestonesRepository],
 })
 export class MilestonesModule {}
