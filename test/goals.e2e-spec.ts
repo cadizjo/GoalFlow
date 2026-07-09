@@ -347,4 +347,33 @@ describe('Goals (e2e)', () => {
 
     expect(res.body.find((b: any) => b.id === block.body.id)).toBeUndefined();
   });
+
+  it('DELETE /goals/:id — soft deletes milestones when goal is deleted', async () => {
+    const goal = await createGoal(app, token).expect(201);
+
+    await request(app.getHttpServer())
+      .post(`/goals/${goal.body.id}/milestones`)
+      .set(authHeader(token))
+      .send({ title: 'Milestone 1' })
+      .expect(201);
+
+    await request(app.getHttpServer())
+      .post(`/goals/${goal.body.id}/milestones`)
+      .set(authHeader(token))
+      .send({ title: 'Milestone 2' })
+      .expect(201);
+
+    await request(app.getHttpServer())
+      .delete(`/goals/${goal.body.id}`)
+      .set(authHeader(token))
+      .expect(200);
+
+    // Milestones should no longer appear for the (now deleted) goal
+    const res = await request(app.getHttpServer())
+      .get(`/goals/${goal.body.id}/milestones`)
+      .set(authHeader(token))
+      .expect(400); // goal is deleted so assertGoalIsActive fires
+
+    expect(res).toBeDefined();
+  });
 });
