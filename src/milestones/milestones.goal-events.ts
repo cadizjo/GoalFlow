@@ -26,6 +26,7 @@ export class MilestonesGoalEventHandler implements OnModuleInit {
       await this.eventLog.log(userId, 'milestone.deleted', {
         milestone_id: milestone.id,
         goal_id: goalId,
+        user_id: userId,
         reason: 'goal_deleted',
       })
     }

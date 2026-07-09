@@ -135,6 +135,8 @@ export class MilestonesService {
     await this.eventLog.log(userId, 'milestone.deleted', {
       milestone_id: milestoneId,
       goal_id: milestone.goal_id,
+      user_id: userId,
+      reason: 'milestone_delete',
     })
   }
 }

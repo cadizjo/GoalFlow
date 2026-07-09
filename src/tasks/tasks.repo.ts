@@ -136,6 +136,16 @@ export class TasksRepository {
     });
   }
 
+  // ─── Milestone association ─────────────────────────────────────────────────
+
+  // Detach all active tasks from a milestone, returning them to the goal with no milestone
+  detachFromMilestone(milestoneId: string) {
+    return this.prisma.task.updateMany({
+      where: { milestone_id: milestoneId, deleted_at: null },
+      data: { milestone_id: null },
+    })
+  }
+
   // ─── Goal ownership ────────────────────────────────────────────────────────
 
   goalOwnedByUser(goalId: string, userId: string): Promise<boolean> {

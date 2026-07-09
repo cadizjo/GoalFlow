@@ -6,6 +6,7 @@ import { PrismaModule } from '../prisma/prisma.module';
 import { EventLogModule } from '../event-log/event-log.module';
 import { ScheduleBlocksQueryModule } from 'src/scheduling/scheduling-query.module';
 import { TasksGoalEventHandler } from './tasks.goal-events';
+import { TasksMilestoneEventHandler } from './tasks.milestone-events';
 
 @Module({
   imports: [
@@ -19,7 +20,8 @@ import { TasksGoalEventHandler } from './tasks.goal-events';
   providers: [
     TasksService, 
     TasksRepository,
-    TasksGoalEventHandler
+    TasksGoalEventHandler,
+    TasksMilestoneEventHandler
   ],
   exports: [
     TasksRepository

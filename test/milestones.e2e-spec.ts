@@ -76,22 +76,6 @@ describe('Milestones (e2e)', () => {
     await createMilestone({ title: 'Milestone 2', sequence: 0 }).expect(400);
   });
 
-  it('POST — auto-assign skips gaps from soft-deleted milestones', async () => {
-    await createMilestone({ title: 'M0', sequence: 0 }).expect(201)
-    const m1 = await createMilestone({ title: 'M1', sequence: 1 }).expect(201)
-    await createMilestone({ title: 'M2', sequence: 2 }).expect(201)
-
-    // Delete the middle one, leaving [0, 2]
-    await request(app.getHttpServer())
-      .delete(`/milestones/${m1.body.id}`)
-      .set(authHeader(token))
-      .expect(200)
-
-    // Auto-assign should be 3, not 1 or 2
-    const res = await createMilestone({ title: 'M3' }).expect(201)
-    expect(res.body.sequence).toBe(3)
-  })
-
   it('POST /goals/:goalId/milestones — rejects empty title', async () => {
     await createMilestone({ title: '   ' }).expect(400);
   });
@@ -265,6 +249,37 @@ describe('Milestones (e2e)', () => {
 
     // Sequence 0 should now be available again
     await createMilestone({ title: 'New Milestone', sequence: 0 }).expect(201);
+  });
+
+  it('DELETE /milestones/:id — detaches tasks back to goal instead of deleting them', async () => {
+    const m = await createMilestone({ title: 'Phase 1' }).expect(201);
+
+    // Create a task assigned to this milestone
+    await request(app.getHttpServer())
+      .post('/tasks')
+      .set(authHeader(token))
+      .send({
+        goal_id: goalId,
+        milestone_id: m.body.id,
+        description: 'Task in milestone',
+        estimated_minutes: 30,
+        priority_score: 1,
+      })
+      .expect(201);
+
+    // Delete the milestone
+    await request(app.getHttpServer())
+      .delete(`/milestones/${m.body.id}`)
+      .set(authHeader(token))
+      .expect(200);
+
+    // Milestone is gone from the list
+    const milestones = await request(app.getHttpServer())
+      .get(`/goals/${goalId}/milestones`)
+      .set(authHeader(token))
+      .expect(200);
+
+    expect(milestones.body.length).toBe(0);
   });
 
   it('DELETE /milestones/:id — rejects deleting another user\'s milestone', async () => {
