@@ -76,6 +76,22 @@ describe('Milestones (e2e)', () => {
     await createMilestone({ title: 'Milestone 2', sequence: 0 }).expect(400);
   });
 
+  it('POST — auto-assign skips gaps from soft-deleted milestones', async () => {
+    await createMilestone({ title: 'M0', sequence: 0 }).expect(201)
+    const m1 = await createMilestone({ title: 'M1', sequence: 1 }).expect(201)
+    await createMilestone({ title: 'M2', sequence: 2 }).expect(201)
+
+    // Delete the middle one, leaving [0, 2]
+    await request(app.getHttpServer())
+      .delete(`/milestones/${m1.body.id}`)
+      .set(authHeader(token))
+      .expect(200)
+
+    // Auto-assign should be 3, not 1 or 2
+    const res = await createMilestone({ title: 'M3' }).expect(201)
+    expect(res.body.sequence).toBe(3)
+  })
+
   it('POST /goals/:goalId/milestones — rejects empty title', async () => {
     await createMilestone({ title: '   ' }).expect(400);
   });

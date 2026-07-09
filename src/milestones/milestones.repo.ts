@@ -32,10 +32,15 @@ export class MilestonesRepository {
     })
   }
 
-  countByGoal(goalId: string): Promise<number> {
-    return this.prisma.milestone.count({
+  // Returns the next available sequence number after the current highest active sequence
+  // Handles gaps caused by soft deletes — e.g. active sequences [0, 2] returns 3, not 2
+  async nextSequence(goalId: string): Promise<number> {
+    const last = await this.prisma.milestone.findFirst({
       where: { goal_id: goalId, deleted_at: null },
+      orderBy: { sequence: 'desc' },
+      select: { sequence: true },
     })
+    return last ? last.sequence + 1 : 0
   }
 
   create(goalId: string, data: CreateMilestoneDto & { sequence: number }): Promise<Milestone> {

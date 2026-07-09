@@ -63,8 +63,8 @@ export class MilestonesService {
       handleInvariant(err)
     }
 
-    // Auto-assign next sequence if not provided — count excludes soft-deleted
-    const sequence = dto.sequence ?? await this.repo.countByGoal(goalId)
+    // Auto-assign next sequence after the current highest — handles gaps from soft deletes
+    const sequence = dto.sequence ?? await this.repo.nextSequence(goalId)
 
     const isTaken = await this.repo.sequenceExists(goalId, sequence)
     try {

@@ -121,9 +121,6 @@ CREATE INDEX "Goal_user_id_idx" ON "Goal"("user_id");
 CREATE INDEX "Milestone_goal_id_idx" ON "Milestone"("goal_id");
 
 -- CreateIndex
-CREATE UNIQUE INDEX "Milestone_goal_id_sequence_key" ON "Milestone"("goal_id", "sequence");
-
--- CreateIndex
 CREATE INDEX "Task_goal_id_idx" ON "Task"("goal_id");
 
 -- CreateIndex

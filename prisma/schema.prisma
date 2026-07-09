@@ -107,8 +107,6 @@ model Milestone {
   created_at DateTime @default(now())
   updated_at DateTime @updatedAt
 
-  // ensures unique milestone order within a goal
-  @@unique([goal_id, sequence]) 
   @@index([goal_id])
 }
 
