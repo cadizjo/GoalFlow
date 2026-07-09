@@ -1,7 +1,15 @@
-import { IsOptional, IsString, IsInt, IsNumber, IsEnum } from 'class-validator';
+import { IsOptional, IsString, IsInt, IsNumber, IsEnum, IsUUID } from 'class-validator';
 import { TaskStatus } from '@prisma/client';
 
 export class UpdateTaskDto {
+  @IsOptional()
+  @IsUUID()
+  milestone_id?: string;
+
+  @IsOptional()
+  @IsUUID()
+  parentTaskId?: string;
+  
   @IsOptional()
   @IsString()
   description?: string;
