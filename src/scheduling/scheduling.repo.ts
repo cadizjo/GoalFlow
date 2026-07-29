@@ -20,10 +20,19 @@ export class ScheduleBlocksRepository {
     return this.prisma.scheduleBlock.findUnique({ where: { id } })
   }
 
-  findAllByUser(userId: string): Promise<ScheduleBlock[]> {
+  findAllByUser(
+    userId: string,
+    cursor?: string,
+    limit: number = 20,
+  ): Promise<ScheduleBlock[]> {
     return this.prisma.scheduleBlock.findMany({
       where: { user_id: userId },
       orderBy: { start_time: 'asc' },
+      take: limit + 1,
+      ...(cursor && {
+        cursor: { id: cursor },
+        skip: 1,
+      }),
     })
   }
 

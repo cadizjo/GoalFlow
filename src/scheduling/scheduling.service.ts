@@ -15,6 +15,8 @@ import {
   assertTaskDependenciesComplete,
 } from './scheduling.invariants'
 import { handleInvariant } from '../common/errors/invariant-handler'
+import { PaginationDto } from '../common/pagination/pagination.dto'
+import { paginate } from '../common/pagination/paginate'
 import { CreateScheduleBlockDto } from './dto/create-schedule-block.dto'
 import { UpdateScheduleBlockDto } from './dto/update-schedule-block.dto'
 import { ScheduleStatus } from '@prisma/client'
@@ -29,8 +31,10 @@ export class ScheduleBlocksService {
 
   // ─── Queries ───────────────────────────────────────────────────────────────
 
-  findAll(userId: string) {
-    return this.repo.findAllByUser(userId)
+  async findAll(userId: string, pagination: PaginationDto) {
+    const limit = Number(pagination.limit ?? 20)
+    const items = await this.repo.findAllByUser(userId, pagination.cursor, limit)
+    return paginate(items, limit)
   }
 
   // ─── Mutations ─────────────────────────────────────────────────────────────

@@ -22,10 +22,19 @@ export class GoalsRepository {
     })
   }
 
-  async findManyByUser(userId: string): Promise<Goal[]> {
+  async findManyByUser(
+    userId: string,
+    cursor?: string,
+    limit: number = 20,
+  ): Promise<Goal[]> {
     return this.prisma.goal.findMany({
       where: { user_id: userId, deleted_at: null },
       orderBy: { created_at: 'desc' },
+      take: limit + 1, // fetch one extra to determine if there's a next page
+      ...(cursor && {
+        cursor: { id: cursor },
+        skip: 1, // skip the cursor item itself
+      }),
     })
   }
 

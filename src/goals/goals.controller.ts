@@ -6,6 +6,7 @@ import {
   Delete,
   Param,
   Body,
+  Query,
   Req,
   UseGuards,
   HttpCode,
@@ -15,6 +16,7 @@ import { GoalsService } from './goals.service'
 import { JwtAuthGuard } from '../auth/jwt-auth.guard'
 import { CreateGoalDto } from './dto/create-goal.dto'
 import { UpdateGoalDto } from './dto/update-goal.dto'
+import { PaginationDto } from '../common/pagination/pagination.dto'
 
 @Controller('goals')
 @UseGuards(JwtAuthGuard)
@@ -27,8 +29,8 @@ export class GoalsController {
   }
 
   @Get()
-  findAll(@Req() req) {
-    return this.goalsService.findAll(req.user.userId)
+  findAll(@Req() req, @Query() pagination: PaginationDto) {
+    return this.goalsService.findAll(req.user.userId, pagination)
   }
 
   @Get(':id')

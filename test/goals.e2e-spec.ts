@@ -89,8 +89,10 @@ describe('Goals (e2e)', () => {
       .set(authHeader(token))
       .expect(200);
 
-    expect(Array.isArray(res.body)).toBe(true);
-    expect(res.body.length).toBe(1);
+    expect(Array.isArray(res.body.data)).toBe(true);
+    expect(res.body.data.length).toBe(1);
+    expect(res.body).toHaveProperty('nextCursor');
+    expect(res.body).toHaveProperty('hasMore', false);
   });
 
   it('GET /goals — does not return soft-deleted goals', async () => {
@@ -106,13 +108,12 @@ describe('Goals (e2e)', () => {
       .set(authHeader(token))
       .expect(200);
 
-    expect(res.body.find((g: any) => g.id === goal.body.id)).toBeUndefined();
+    expect(res.body.data.find((g: any) => g.id === goal.body.id)).toBeUndefined();
   });
 
   it('GET /goals — only returns goals belonging to the current user', async () => {
     await createGoal(app, token).expect(201);
 
-    // Second user creates their own goal
     const otherToken = await signupAndLogin(app, 'goals_other');
     await createGoal(app, otherToken).expect(201);
 
@@ -121,7 +122,39 @@ describe('Goals (e2e)', () => {
       .set(authHeader(token))
       .expect(200);
 
-    expect(res.body.length).toBe(1);
+    expect(res.body.data.length).toBe(1);
+  });
+
+  it('GET /goals — paginates results with cursor', async () => {
+    // Create 3 goals
+    await createGoal(app, token, { title: 'Goal A' }).expect(201);
+    await createGoal(app, token, { title: 'Goal B' }).expect(201);
+    await createGoal(app, token, { title: 'Goal C' }).expect(201);
+
+    // Fetch first page of 2
+    const page1 = await request(app.getHttpServer())
+      .get('/goals?limit=2')
+      .set(authHeader(token))
+      .expect(200);
+
+    expect(page1.body.data.length).toBe(2);
+    expect(page1.body.hasMore).toBe(true);
+    expect(page1.body.nextCursor).toBeDefined();
+
+    // Fetch second page using cursor
+    const page2 = await request(app.getHttpServer())
+      .get(`/goals?limit=2&cursor=${page1.body.nextCursor}`)
+      .set(authHeader(token))
+      .expect(200);
+
+    expect(page2.body.data.length).toBe(1);
+    expect(page2.body.hasMore).toBe(false);
+    expect(page2.body.nextCursor).toBeNull();
+
+    // No overlap between pages
+    const page1Ids = page1.body.data.map((g: any) => g.id);
+    const page2Ids = page2.body.data.map((g: any) => g.id);
+    expect(page1Ids.some((id: string) => page2Ids.includes(id))).toBe(false);
   });
 
   // ─── GET /goals/:id ────────────────────────────────────────────────────────
@@ -345,7 +378,7 @@ describe('Goals (e2e)', () => {
       .set(authHeader(token))
       .expect(200);
 
-    expect(res.body.find((b: any) => b.id === block.body.id)).toBeUndefined();
+    expect(res.body.data.find((b: any) => b.id === block.body.id)).toBeUndefined();
   });
 
   it('DELETE /goals/:id — soft deletes milestones when goal is deleted', async () => {

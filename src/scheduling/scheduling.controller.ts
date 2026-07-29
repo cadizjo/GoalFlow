@@ -6,6 +6,7 @@ import {
   Delete,
   Param,
   Body,
+  Query,
   Req,
   UseGuards,
   HttpCode,
@@ -15,6 +16,7 @@ import { JwtAuthGuard } from '../auth/jwt-auth.guard'
 import { ScheduleBlocksService } from './scheduling.service'
 import { CreateScheduleBlockDto } from './dto/create-schedule-block.dto'
 import { UpdateScheduleBlockDto } from './dto/update-schedule-block.dto'
+import { PaginationDto } from '../common/pagination/pagination.dto'
 
 @Controller('schedule-blocks')
 @UseGuards(JwtAuthGuard)
@@ -27,8 +29,8 @@ export class ScheduleBlocksController {
   }
 
   @Get()
-  findAll(@Req() req) {
-    return this.service.findAll(req.user.userId)
+  findAll(@Req() req, @Query() pagination: PaginationDto) {
+    return this.service.findAll(req.user.userId, pagination)
   }
 
   @Patch(':id')

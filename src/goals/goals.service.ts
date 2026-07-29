@@ -7,6 +7,8 @@ import { CreateGoalDto } from './dto/create-goal.dto'
 import { UpdateGoalDto } from './dto/update-goal.dto'
 import { EventLogService } from '../event-log/event-log.service'
 import { handleInvariant } from '../common/errors/invariant-handler'
+import { PaginationDto } from '../common/pagination/pagination.dto'
+import { paginate } from '../common/pagination/paginate'
 import {
   assertGoalOwnedByUser,
   assertGoalNotDeleted,
@@ -27,8 +29,10 @@ export class GoalsService {
 
   // ─── Queries ───────────────────────────────────────────────────────────────
 
-  async findAll(userId: string) {
-    return this.repo.findManyByUser(userId)
+  async findAll(userId: string, pagination: PaginationDto) {
+    const limit = Number(pagination.limit ?? 20)
+    const items = await this.repo.findManyByUser(userId, pagination.cursor, limit)
+    return paginate(items, limit)
   }
 
   async findOne(userId: string, goalId: string) {

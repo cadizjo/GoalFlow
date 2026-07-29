@@ -62,7 +62,8 @@ describe('ScheduleBlocks (e2e)', () => {
       .set(authHeader(token))
       .expect(200);
 
-    expect(res.body.length).toBe(1);
+    expect(res.body.data.length).toBe(1);
+    expect(res.body.hasMore).toBe(false);
   });
 
   it('updates a schedule block', async () => {
@@ -92,7 +93,7 @@ describe('ScheduleBlocks (e2e)', () => {
       .set(authHeader(token))
       .expect(200);
 
-    expect(res.body.length).toBe(0);
+    expect(res.body.data.length).toBe(0);
   });
 
   // ─── Scheduling invariants ─────────────────────────────────────────────────
@@ -166,7 +167,7 @@ describe('ScheduleBlocks (e2e)', () => {
       .set(authHeader(token))
       .expect(200);
 
-    expect(res.body.find((b: any) => b.id === block.body.id)).toBeUndefined();
+    expect(res.body.data.find((b: any) => b.id === block.body.id)).toBeUndefined();
   });
 
   it('requires JWT', async () => {
