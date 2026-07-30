@@ -28,6 +28,19 @@ export class TasksRepository {
     });
   }
 
+  findManyByGoal(
+    goalId: string,
+    cursor?: string,
+    limit: number = 20,
+  ): Promise<Task[]> {
+    return this.prisma.task.findMany({
+      where: { goal_id: goalId, deleted_at: null },
+      orderBy: { created_at: 'desc' },
+      take: limit + 1,
+      ...(cursor && { cursor: { id: cursor }, skip: 1 }),
+    })
+  }
+
   findIncompleteByGoal(goalId: string): Promise<Task[]> {
     return this.prisma.task.findMany({
       where: {

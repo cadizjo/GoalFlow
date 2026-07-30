@@ -13,6 +13,7 @@ import {
   HttpStatus,
 } from '@nestjs/common'
 import { GoalsService } from './goals.service'
+import { TasksService } from '../tasks/tasks.service'
 import { JwtAuthGuard } from '../auth/jwt-auth.guard'
 import { CreateGoalDto } from './dto/create-goal.dto'
 import { UpdateGoalDto } from './dto/update-goal.dto'
@@ -21,7 +22,10 @@ import { PaginationDto } from '../common/pagination/pagination.dto'
 @Controller('goals')
 @UseGuards(JwtAuthGuard)
 export class GoalsController {
-  constructor(private readonly goalsService: GoalsService) {}
+  constructor(
+    private readonly goalsService: GoalsService,
+    private readonly tasksService: TasksService,
+  ) {}
 
   @Post()
   create(@Req() req, @Body() dto: CreateGoalDto) {
@@ -36,6 +40,15 @@ export class GoalsController {
   @Get(':id')
   findOne(@Req() req, @Param('id') id: string) {
     return this.goalsService.findOne(req.user.userId, id)
+  }
+
+  @Get(':goalId/tasks')
+  findTasks(
+    @Req() req,
+    @Param('goalId') goalId: string,
+    @Query() pagination: PaginationDto,
+  ) {
+    return this.tasksService.findAllForGoal(req.user.userId, goalId, pagination)
   }
 
   @Patch(':id')

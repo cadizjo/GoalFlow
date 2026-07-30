@@ -133,7 +133,7 @@ describe('Goals (e2e)', () => {
 
     // Fetch first page of 2
     const page1 = await request(app.getHttpServer())
-      .get('/goals?limit=2')
+      .get('/goals?limit=2.5')
       .set(authHeader(token))
       .expect(200);
 

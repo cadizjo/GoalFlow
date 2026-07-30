@@ -24,7 +24,8 @@ import { TasksMilestoneEventHandler } from './tasks.milestone-events';
     TasksMilestoneEventHandler
   ],
   exports: [
-    TasksRepository
+    TasksRepository,
+    TasksService
   ], // Exporting TasksRepository for use in SchedulingModule
 })
 export class TasksModule {}

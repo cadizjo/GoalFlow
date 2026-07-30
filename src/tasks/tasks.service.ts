@@ -22,6 +22,8 @@ import { TasksRepository } from './tasks.repo';
 import { EventLogService } from '../event-log/event-log.service';
 import { handleInvariant } from '../common/errors/invariant-handler';
 import { ScheduleBlocksQueryService } from '../scheduling/scheduling.query';
+import { PaginationDto } from 'src/common/pagination/pagination.dto';
+import { paginate } from 'src/common/pagination/paginate';
 
 @Injectable()
 export class TasksService {
@@ -54,6 +56,17 @@ export class TasksService {
     if (!ownsGoal) throw new ForbiddenException();
 
     return task;
+  }
+
+  async findAllForGoal(userId: string, goalId: string, pagination: PaginationDto) {
+    const ownsGoal = await this.repo.goalOwnedByUser(goalId, userId)
+    if (!ownsGoal) throw new ForbiddenException()
+
+    await this.assertGoalActive(goalId)
+
+    const limit = Number(pagination.limit ?? 20)
+    const items = await this.repo.findManyByGoal(goalId, pagination.cursor, limit)
+    return paginate(items, limit)
   }
 
   // ─── Mutations ─────────────────────────────────────────────────────────────

@@ -216,4 +216,96 @@ describe('Tasks (e2e)', () => {
       })
       .expect(403);
   });
+
+  // ─── GET /goals/:goalId/tasks ──────────────────────────────────────────────
+
+  it('GET /goals/:goalId/tasks — requires JWT', async () => {
+    await request(app.getHttpServer())
+      .get(`/goals/${goalId}/tasks`)
+      .expect(401);
+  });
+
+  it('GET /goals/:goalId/tasks — returns tasks for the goal', async () => {
+    await createTask(app, token, goalId, { description: 'Task A' });
+    await createTask(app, token, goalId, { description: 'Task B' });
+
+    const res = await request(app.getHttpServer())
+      .get(`/goals/${goalId}/tasks`)
+      .set(authHeader(token))
+      .expect(200);
+
+    expect(Array.isArray(res.body.data)).toBe(true);
+    expect(res.body.data.length).toBe(2);
+    expect(res.body.hasMore).toBe(false);
+    expect(res.body.nextCursor).toBeNull();
+  });
+
+  it('GET /goals/:goalId/tasks — does not return soft-deleted tasks', async () => {
+    const task = await createTask(app, token, goalId);
+
+    await request(app.getHttpServer())
+      .delete(`/tasks/${task.id}`)
+      .set(authHeader(token))
+      .expect(200);
+
+    const res = await request(app.getHttpServer())
+      .get(`/goals/${goalId}/tasks`)
+      .set(authHeader(token))
+      .expect(200);
+
+    expect(res.body.data.find((t: any) => t.id === task.id)).toBeUndefined();
+  });
+
+  it('GET /goals/:goalId/tasks — rejects access to another user\'s goal', async () => {
+    const otherToken = await signupAndLogin(app, 'tasks_other');
+    const otherGoal = await createGoal(app, otherToken).expect(201);
+
+    await request(app.getHttpServer())
+      .get(`/goals/${otherGoal.body.id}/tasks`)
+      .set(authHeader(token))
+      .expect(403);
+  });
+
+  it('GET /goals/:goalId/tasks — paginates results with cursor', async () => {
+    await createTask(app, token, goalId, { description: 'Task A' });
+    await createTask(app, token, goalId, { description: 'Task B' });
+    await createTask(app, token, goalId, { description: 'Task C' });
+
+    // First page of 2
+    const page1 = await request(app.getHttpServer())
+      .get(`/goals/${goalId}/tasks?limit=2`)
+      .set(authHeader(token))
+      .expect(200);
+
+    expect(page1.body.data.length).toBe(2);
+    expect(page1.body.hasMore).toBe(true);
+    expect(page1.body.nextCursor).toBeDefined();
+
+    // Second page using cursor
+    const page2 = await request(app.getHttpServer())
+      .get(`/goals/${goalId}/tasks?limit=2&cursor=${page1.body.nextCursor}`)
+      .set(authHeader(token))
+      .expect(200);
+
+    expect(page2.body.data.length).toBe(1);
+    expect(page2.body.hasMore).toBe(false);
+    expect(page2.body.nextCursor).toBeNull();
+
+    // No overlap between pages
+    const page1Ids = page1.body.data.map((t: any) => t.id);
+    const page2Ids = page2.body.data.map((t: any) => t.id);
+    expect(page1Ids.some((id: string) => page2Ids.includes(id))).toBe(false);
+  });
+
+  it('GET /goals/:goalId/tasks — returns 400 for deleted goal', async () => {
+    await request(app.getHttpServer())
+      .delete(`/goals/${goalId}`)
+      .set(authHeader(token))
+      .expect(200);
+
+    await request(app.getHttpServer())
+      .get(`/goals/${goalId}/tasks`)
+      .set(authHeader(token))
+      .expect(400);
+  });
 });
