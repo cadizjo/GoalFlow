@@ -4,18 +4,14 @@ import request from 'supertest';
 import { AppModule } from '../src/app.module';
 import { cleanDb } from './utils/cleanup';
 import { signupAndLogin, authHeader, createGoal, createTask, completeTask, createScheduleBlock } from './utils/helpers';
+import { createTestApp } from './utils/create-test-app';
 
 describe('Goals (e2e)', () => {
   let app: INestApplication;
   let token: string;
 
   beforeAll(async () => {
-    const moduleFixture: TestingModule = await Test.createTestingModule({
-      imports: [AppModule],
-    }).compile();
-
-    app = moduleFixture.createNestApplication();
-    await app.init();
+    app = await createTestApp();
   });
 
   beforeEach(async () => {
@@ -133,7 +129,7 @@ describe('Goals (e2e)', () => {
 
     // Fetch first page of 2
     const page1 = await request(app.getHttpServer())
-      .get('/goals?limit=2.5')
+      .get('/goals?limit=2')
       .set(authHeader(token))
       .expect(200);
 

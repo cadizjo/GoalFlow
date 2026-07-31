@@ -15,6 +15,7 @@ import {
   DEFAULT_START,
   DEFAULT_END,
 } from './utils/helpers';
+import { createTestApp } from './utils/create-test-app';
 
 describe('ScheduleBlocks (e2e)', () => {
   let app: INestApplication;
@@ -23,12 +24,7 @@ describe('ScheduleBlocks (e2e)', () => {
   let taskId: string;
 
   beforeAll(async () => {
-    const moduleRef = await Test.createTestingModule({
-      imports: [AppModule],
-    }).compile();
-
-    app = moduleRef.createNestApplication();
-    await app.init();
+    app = await createTestApp();
   });
 
   beforeEach(async () => {

@@ -4,6 +4,7 @@ import request from 'supertest';
 import { AppModule } from '../src/app.module';
 import { cleanDb } from './utils/cleanup';
 import { signupAndLogin, authHeader, createGoal } from './utils/helpers';
+import { createTestApp } from './utils/create-test-app';
 
 describe('Milestones (e2e)', () => {
   let app: INestApplication;
@@ -19,12 +20,7 @@ describe('Milestones (e2e)', () => {
       .send({ title: 'Milestone', ...overrides })
 
   beforeAll(async () => {
-    const moduleFixture: TestingModule = await Test.createTestingModule({
-      imports: [AppModule],
-    }).compile();
-
-    app = moduleFixture.createNestApplication();
-    await app.init();
+    app = await createTestApp();
   });
 
   beforeEach(async () => {

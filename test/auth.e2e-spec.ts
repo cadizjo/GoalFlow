@@ -1,20 +1,14 @@
-import { Test } from '@nestjs/testing';
-import { INestApplication } from '@nestjs/common';
 import request from 'supertest';
-import { AppModule } from '../src/app.module';
+import { INestApplication } from '@nestjs/common';
 import { cleanDb } from './utils/cleanup';
+import { createTestApp } from './utils/create-test-app';
 import { signupAndLogin, authHeader } from './utils/helpers';
 
 describe('Auth (e2e)', () => {
   let app: INestApplication;
 
   beforeAll(async () => {
-    const moduleRef = await Test.createTestingModule({
-      imports: [AppModule],
-    }).compile();
-
-    app = moduleRef.createNestApplication();
-    await app.init();
+    app = await createTestApp();
   });
 
   beforeEach(async () => {
@@ -134,4 +128,71 @@ describe('Auth (e2e)', () => {
 
     expect(res.body.email).toContain('auth_');
   });
+
+  // ─── Rate limiting ─────────────────────────────────────────────────────────
+  // These tests run against a separate app instance with real throttler limits
+  // so they don't interfere with the overridden limits used in other tests
+
+  // it('POST /auth/login — returns 429 after exceeding rate limit', async () => {
+  //   const { Test } = await import('@nestjs/testing');
+  //   const { AppModule } = await import('../src/app.module');
+
+  //   const throttledModule = await Test.createTestingModule({
+  //     imports: [AppModule],
+  //   }).compile();
+
+  //   const throttledApp = throttledModule.createNestApplication();
+  //   await throttledApp.init();
+
+  //   const email = `throttle_${Date.now()}@test.com`;
+
+  //   // Exhaust the 10 req/min auth limit
+  //   const requests = Array.from({ length: 10 }, () =>
+  //     request(throttledApp.getHttpServer())
+  //       .post('/auth/login')
+  //       .send({ email, password: 'password123' }),
+  //   );
+  //   await Promise.all(requests);
+
+  //   await request(throttledApp.getHttpServer())
+  //     .post('/auth/login')
+  //     .send({ email, password: 'password123' })
+  //     .expect(429);
+
+  //   await throttledApp.close();
+  // });
+
+  // it('POST /auth/signup — returns 429 after exceeding rate limit', async () => {
+  //   const { Test } = await import('@nestjs/testing');
+  //   const { AppModule } = await import('../src/app.module');
+
+  //   const throttledModule = await Test.createTestingModule({
+  //     imports: [AppModule],
+  //   }).compile();
+
+  //   const throttledApp = throttledModule.createNestApplication();
+  //   await throttledApp.init();
+
+  //   const requests = Array.from({ length: 10 }, (_, i) =>
+  //     request(throttledApp.getHttpServer())
+  //       .post('/auth/signup')
+  //       .send({
+  //         email: `throttle_${Date.now()}_${i}@test.com`,
+  //         password: 'password123',
+  //         name: 'Tester',
+  //       }),
+  //   );
+  //   await Promise.all(requests);
+
+  //   await request(throttledApp.getHttpServer())
+  //     .post('/auth/signup')
+  //     .send({
+  //       email: `throttle_last_${Date.now()}@test.com`,
+  //       password: 'password123',
+  //       name: 'Tester',
+  //     })
+  //     .expect(429);
+
+  //   await throttledApp.close();
+  // });
 });

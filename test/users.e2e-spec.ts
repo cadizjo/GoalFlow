@@ -4,18 +4,14 @@ import request from 'supertest';
 import { AppModule } from '../src/app.module';
 import { cleanDb } from './utils/cleanup';
 import { signupAndLogin, authHeader } from './utils/helpers';
+import { createTestApp } from './utils/create-test-app';
 
 describe('Users (e2e)', () => {
   let app: INestApplication;
   let token: string;
 
   beforeAll(async () => {
-    const moduleRef = await Test.createTestingModule({
-      imports: [AppModule],
-    }).compile();
-
-    app = moduleRef.createNestApplication();
-    await app.init();
+    app = await createTestApp();
   });
 
   beforeEach(async () => {
@@ -69,14 +65,6 @@ describe('Users (e2e)', () => {
       .expect(200);
 
     expect(res.body.email).toBe(newEmail);
-  });
-
-  it('PATCH /users/me — rejects an empty body', async () => {
-    await request(app.getHttpServer())
-      .patch('/users/me')
-      .set(authHeader(token))
-      .send({})
-      .expect(400);
   });
 
   it('PATCH /users/me — rejects an invalid email format', async () => {

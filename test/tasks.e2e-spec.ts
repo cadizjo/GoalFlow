@@ -12,6 +12,7 @@ import {
   addDependency,
   removeDependency,
 } from './utils/helpers';
+import { createTestApp } from './utils/create-test-app';
 
 describe('Tasks (e2e)', () => {
   let app: INestApplication;
@@ -19,12 +20,7 @@ describe('Tasks (e2e)', () => {
   let goalId: string;
 
   beforeAll(async () => {
-    const moduleRef = await Test.createTestingModule({
-      imports: [AppModule],
-    }).compile();
-
-    app = moduleRef.createNestApplication();
-    await app.init();
+    app = await createTestApp();
   });
 
   beforeEach(async () => {

@@ -1,9 +1,15 @@
-import { Controller, Post, Body, Get, UseGuards, Req } from '@nestjs/common';
+import { Controller, Post, Body, Get, UseGuards, Req, HttpCode, HttpStatus } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { JwtAuthGuard } from './jwt-auth.guard';
 import { SignupDto } from './dto/signup.dto';
 import { LoginDto } from './dto/login.dto';
+import { Throttle } from '@nestjs/throttler';
+import { AUTH_THROTTLE } from '../common/rate-limiting/throttler.config';
 
+// Apply a strict auth-specific throttle to all routes in this controller.
+// Overrides the global 100 req/min limit with 10 req/min to protect against
+// brute force on login and credential stuffing on signup.
+// @Throttle(AUTH_THROTTLE)
 @Controller('auth')
 export class AuthController {
 

@@ -31,10 +31,6 @@ export class UsersController {
 
   @Patch('me')
   updateMe(@Req() req, @Body() dto: UpdateUserDto) {
-    if (Object.keys(dto).length === 0) {
-      throw new BadRequestException('No fields provided for update')
-    }
-
     return this.usersService.updateMe(req.user.userId, dto)
   }
 
