@@ -1,5 +1,7 @@
-import request from 'supertest';
 import { INestApplication } from '@nestjs/common';
+import { Test } from '@nestjs/testing';
+import request from 'supertest';
+import { AppModule } from '../src/app.module';
 import { cleanDb } from './utils/cleanup';
 import { createTestApp } from './utils/create-test-app';
 import { signupAndLogin, authHeader } from './utils/helpers';
@@ -128,71 +130,73 @@ describe('Auth (e2e)', () => {
 
     expect(res.body.email).toContain('auth_');
   });
-
-  // ─── Rate limiting ─────────────────────────────────────────────────────────
-  // These tests run against a separate app instance with real throttler limits
-  // so they don't interfere with the overridden limits used in other tests
-
-  // it('POST /auth/login — returns 429 after exceeding rate limit', async () => {
-  //   const { Test } = await import('@nestjs/testing');
-  //   const { AppModule } = await import('../src/app.module');
-
-  //   const throttledModule = await Test.createTestingModule({
-  //     imports: [AppModule],
-  //   }).compile();
-
-  //   const throttledApp = throttledModule.createNestApplication();
-  //   await throttledApp.init();
-
-  //   const email = `throttle_${Date.now()}@test.com`;
-
-  //   // Exhaust the 10 req/min auth limit
-  //   const requests = Array.from({ length: 10 }, () =>
-  //     request(throttledApp.getHttpServer())
-  //       .post('/auth/login')
-  //       .send({ email, password: 'password123' }),
-  //   );
-  //   await Promise.all(requests);
-
-  //   await request(throttledApp.getHttpServer())
-  //     .post('/auth/login')
-  //     .send({ email, password: 'password123' })
-  //     .expect(429);
-
-  //   await throttledApp.close();
-  // });
-
-  // it('POST /auth/signup — returns 429 after exceeding rate limit', async () => {
-  //   const { Test } = await import('@nestjs/testing');
-  //   const { AppModule } = await import('../src/app.module');
-
-  //   const throttledModule = await Test.createTestingModule({
-  //     imports: [AppModule],
-  //   }).compile();
-
-  //   const throttledApp = throttledModule.createNestApplication();
-  //   await throttledApp.init();
-
-  //   const requests = Array.from({ length: 10 }, (_, i) =>
-  //     request(throttledApp.getHttpServer())
-  //       .post('/auth/signup')
-  //       .send({
-  //         email: `throttle_${Date.now()}_${i}@test.com`,
-  //         password: 'password123',
-  //         name: 'Tester',
-  //       }),
-  //   );
-  //   await Promise.all(requests);
-
-  //   await request(throttledApp.getHttpServer())
-  //     .post('/auth/signup')
-  //     .send({
-  //       email: `throttle_last_${Date.now()}@test.com`,
-  //       password: 'password123',
-  //       name: 'Tester',
-  //     })
-  //     .expect(429);
-
-  //   await throttledApp.close();
-  // });
 });
+
+// ─── Rate limiting ───────────────────────────────────────────────────────────
+// Separate describe block with real throttle limits applied via env vars.
+// The main suite runs with THROTTLE_AUTH_LIMIT=10000 from .env.test.
+// Here we temporarily set it to 10 before building the app, then restore it.
+
+// describe('Auth rate limiting (e2e)', () => {
+//   let throttledApp: INestApplication;
+
+//   beforeAll(async () => {
+//     // Override env to real limits for this suite only
+//     process.env.THROTTLE_AUTH_LIMIT = '10'
+//     process.env.THROTTLE_GLOBAL_LIMIT = '100'
+
+//     const moduleRef = await Test.createTestingModule({
+//       imports: [AppModule],
+//     }).compile()
+
+//     throttledApp = moduleRef.createNestApplication()
+//     await throttledApp.init()
+//   })
+
+//   afterAll(async () => {
+//     // Restore high limits so other suites are unaffected
+//     process.env.THROTTLE_AUTH_LIMIT = '10000'
+//     process.env.THROTTLE_GLOBAL_LIMIT = '10000'
+//     await throttledApp.close()
+//   })
+
+//   it('POST /auth/login — returns 429 after exceeding rate limit', async () => {
+//     const email = `throttle_login_${Date.now()}@test.com`
+
+//     await Promise.all(
+//       Array.from({ length: 10 }, () =>
+//         request(throttledApp.getHttpServer())
+//           .post('/auth/login')
+//           .send({ email, password: 'password123' }),
+//       ),
+//     )
+
+//     await request(throttledApp.getHttpServer())
+//       .post('/auth/login')
+//       .send({ email, password: 'password123' })
+//       .expect(429)
+//   })
+
+//   it('POST /auth/signup — returns 429 after exceeding rate limit', async () => {
+//     await Promise.all(
+//       Array.from({ length: 10 }, (_, i) =>
+//         request(throttledApp.getHttpServer())
+//           .post('/auth/signup')
+//           .send({
+//             email: `throttle_signup_${Date.now()}_${i}@test.com`,
+//             password: 'password123',
+//             name: 'Tester',
+//           }),
+//       ),
+//     )
+
+//     await request(throttledApp.getHttpServer())
+//       .post('/auth/signup')
+//       .send({
+//         email: `throttle_signup_last_${Date.now()}@test.com`,
+//         password: 'password123',
+//         name: 'Tester',
+//       })
+//       .expect(429)
+//   })
+// })

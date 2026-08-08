@@ -15,7 +15,7 @@ import { APP_GUARD } from '@nestjs/core';
 
 @Module({
   imports: [
-    // ThrottlerModule.forRoot(defaultThrottlerConfig), // Apply global rate limiting
+    ThrottlerModule.forRoot(defaultThrottlerConfig), // Apply global rate limiting
     ConfigModule.forRoot({ isGlobal: true }), // Load environment variables globally
     PrismaModule,
     AuthModule,
@@ -26,11 +26,11 @@ import { APP_GUARD } from '@nestjs/core';
     ScheduleBlocksModule,
     EventLogModule,
   ],
-  // providers: [
-  //   {
-  //     provide: APP_GUARD, // Register a global guard
-  //     useClass: ThrottlerGuard, // Use the ThrottlerGuard to enforce rate limits across the application
-  //   }
-  // ],
+  providers: [
+    {
+      provide: APP_GUARD, // Register a global guard
+      useClass: ThrottlerGuard, // Use the ThrottlerGuard to enforce rate limits across the application
+    }
+  ],
 })
 export class AppModule {}

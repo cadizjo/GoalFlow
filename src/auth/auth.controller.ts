@@ -9,7 +9,7 @@ import { AUTH_THROTTLE } from '../common/rate-limiting/throttler.config';
 // Apply a strict auth-specific throttle to all routes in this controller.
 // Overrides the global 100 req/min limit with 10 req/min to protect against
 // brute force on login and credential stuffing on signup.
-// @Throttle(AUTH_THROTTLE)
+@Throttle(AUTH_THROTTLE)
 @Controller('auth')
 export class AuthController {
 
