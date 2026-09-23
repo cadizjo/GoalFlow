@@ -1,23 +1,30 @@
+import { ConfigService } from '@nestjs/config'
 import { ThrottlerModuleOptions } from '@nestjs/throttler'
 
-// Limits are driven by environment variables so tests can set them very high
-// without disabling the guard itself.
-// .env:       THROTTLE_GLOBAL_LIMIT=100   THROTTLE_AUTH_LIMIT=10
-// .env.test:  THROTTLE_GLOBAL_LIMIT=10000 THROTTLE_AUTH_LIMIT=10000
-export const defaultThrottlerConfig: ThrottlerModuleOptions = {
-  throttlers: [
-    {
-      name: 'default',
-      ttl: 60_000,
-      limit: parseInt(process.env.THROTTLE_GLOBAL_LIMIT ?? '100', 10),
-    },
-  ],
+// Used in ThrottlerModule.forRootAsync() — ConfigService is available here
+// because NestJS resolves it as a dependency before calling useFactory.
+export function buildThrottlerConfig(config: ConfigService): ThrottlerModuleOptions {
+  return {
+    throttlers: [
+      {
+        name: 'default',
+        ttl: 60_000,
+        limit: config.get<number>('THROTTLE_GLOBAL_LIMIT') ?? 100,
+      },
+    ],
+  }
 }
 
-// Applied via @Throttle() on auth endpoints to override the default limit
-export const AUTH_THROTTLE = {
-  default: {
-    ttl: 60_000,
-    limit: parseInt(process.env.THROTTLE_AUTH_LIMIT ?? '10', 10),
-  },
+// Used in @Throttle() on the auth controller class.
+// Decorators run at class definition time — before NestJS initializes
+// ConfigService — so we read process.env directly here. This is still
+// safe because the decorator factory is called during module compilation,
+// which happens after your test's beforeAll has set the env vars.
+export function buildAuthThrottle() {
+  return {
+    default: {
+      ttl: 60_000,
+      limit: parseInt(process.env.THROTTLE_AUTH_LIMIT ?? '10', 10),
+    },
+  }
 }

@@ -166,7 +166,7 @@ describe('Users (e2e)', () => {
     const res = await request(app.getHttpServer())
       .post('/auth/login')
       .send({ email: me.body.email, password: 'newpassword456' })
-      .expect(201);
+      .expect(200);
 
     expect(res.body.access_token).toBeDefined();
   });

@@ -5,7 +5,7 @@ type EventHandler = (payload: any) => Promise<void> | void
 
 @Injectable()
 export class EventLogService {
-  private listeners: Record<string, EventHandler[]> = {} // Event listeners registry
+  private listeners: Record<string, EventHandler[]> = {} // Shared event listeners registry
 
   constructor(private prisma: PrismaService) {}
 

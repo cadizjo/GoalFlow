@@ -2,21 +2,24 @@
 import { Module } from '@nestjs/common';
 import { PrismaModule } from './prisma/prisma.module';
 import { UsersModule } from './users/users.module';
-import { ConfigModule } from '@nestjs/config';
+import { ConfigModule, ConfigService } from '@nestjs/config';
 import { AuthModule } from './auth/auth.module';
 import { GoalsModule } from './goals/goals.module';
 import { MilestonesModule } from './milestones/milestones.module';
 import { TasksModule } from './tasks/tasks.module';
 import { ScheduleBlocksModule } from './scheduling/scheduling.module';
 import { EventLogModule } from './event-log/event-log.module';
-import { defaultThrottlerConfig } from './common/rate-limiting/throttler.config';
+import { buildThrottlerConfig } from './common/rate-limiting/throttler.config';
 import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
 import { APP_GUARD } from '@nestjs/core';
 
 @Module({
   imports: [
-    ThrottlerModule.forRoot(defaultThrottlerConfig), // Apply global rate limiting
-    ConfigModule.forRoot({ isGlobal: true }), // Load environment variables globally
+    ConfigModule.forRoot({ isGlobal: true }), // Load environment variables and make them globally available
+    ThrottlerModule.forRootAsync({            // Configure ThrottlerModule asynchronously to use dynamic config values
+      inject: [ConfigService], 
+      useFactory: (config: ConfigService) => buildThrottlerConfig(config), 
+    }),
     PrismaModule,
     AuthModule,
     UsersModule,

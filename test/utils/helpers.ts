@@ -17,7 +17,7 @@ export const signupAndLogin = async (
   const res = await request(app.getHttpServer())
     .post('/auth/login')
     .send({ email, password: 'password123' })
-    .expect(201);
+    .expect(200);
 
   return res.body.access_token;
 };
