@@ -1,25 +1,24 @@
-import { ConfigService } from '@nestjs/config'
 import { ThrottlerModuleOptions } from '@nestjs/throttler'
+import { AppConfigService } from '../../config/config.service'
 
-// Used in ThrottlerModule.forRootAsync() — ConfigService is available here
-// because NestJS resolves it as a dependency before calling useFactory.
-export function buildThrottlerConfig(config: ConfigService): ThrottlerModuleOptions {
+// Used in ThrottlerModule.forRootAsync() — AppConfigService is injected
+// by NestJS before useFactory is called, so values are fully validated.
+export function buildThrottlerConfig(config: AppConfigService): ThrottlerModuleOptions {
   return {
     throttlers: [
       {
         name: 'default',
         ttl: 60_000,
-        limit: config.get<number>('THROTTLE_GLOBAL_LIMIT') ?? 100,
+        limit: config.throttleGlobal,
       },
     ],
   }
 }
 
-// Used in @Throttle() on the auth controller class.
-// Decorators run at class definition time — before NestJS initializes
-// ConfigService — so we read process.env directly here. This is still
-// safe because the decorator factory is called during module compilation,
-// which happens after your test's beforeAll has set the env vars.
+// Used in @Throttle() on auth controller. Class decorators run at definition
+// time before NestJS DI is available, so process.env is read directly here.
+// This is safe because buildAuthThrottle() is called during module compilation,
+// which happens after .env.test has been loaded by dotenv.
 export function buildAuthThrottle() {
   return {
     default: {

@@ -12,7 +12,7 @@ describe('throttler config', () => {
   })
 
   describe('buildAuthThrottle', () => {
-    it('uses THROTTLE_AUTH_LIMIT from env', () => {
+    it('reads THROTTLE_AUTH_LIMIT from env', () => {
       process.env.THROTTLE_AUTH_LIMIT = '5'
       expect(buildAuthThrottle().default.limit).toBe(5)
     })
@@ -28,18 +28,26 @@ describe('throttler config', () => {
   })
 
   describe('buildThrottlerConfig', () => {
-    it('uses THROTTLE_GLOBAL_LIMIT from env', () => {
-      process.env.THROTTLE_GLOBAL_LIMIT = '50'
-      const config = { get: (key: string) => parseInt(process.env[key] ?? '', 10) } as any
+    // AppConfigService uses named getters, not config.get(key)
+    // so the mock just needs to match the getter interface
+
+    it('uses throttleGlobal from AppConfigService', () => {
+      const config = { throttleGlobal: 50 } as any
       const result = buildThrottlerConfig(config)
       expect(result.throttlers[0].limit).toBe(50)
     })
 
     it('has one named default throttler', () => {
-      const config = { get: () => 100 } as any
+      const config = { throttleGlobal: 100 } as any
       const result = buildThrottlerConfig(config)
       expect(result.throttlers).toHaveLength(1)
       expect(result.throttlers[0].name).toBe('default')
+    })
+
+    it('sets ttl to 60000ms', () => {
+      const config = { throttleGlobal: 100 } as any
+      const result = buildThrottlerConfig(config)
+      expect(result.throttlers[0].ttl).toBe(60_000)
     })
   })
 })

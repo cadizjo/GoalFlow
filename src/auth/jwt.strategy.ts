@@ -1,20 +1,14 @@
 import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { PassportStrategy } from '@nestjs/passport';
 import { ExtractJwt, Strategy } from 'passport-jwt';
-import { ConfigService } from '@nestjs/config';
+import { AppConfigService } from '../config/config.service';
 
 @Injectable()
 export class JwtStrategy extends PassportStrategy(Strategy) {
     
-  // Inject ConfigService to access environment variables
-  constructor(configService: ConfigService) {
+  constructor(config: AppConfigService) {
 
-    // Get JWT secret from environment variables
-    const secret = configService.get<string>('JWT_SECRET');
-
-    if (!secret) {
-      throw new Error('JWT_SECRET is not defined');
-    }
+    const secret = config.jwtSecret;
 
     // Configure the JWT strategy
     super({

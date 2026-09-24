@@ -1,28 +1,28 @@
-import { Injectable } from '@nestjs/common';
-import { JwtService } from '@nestjs/jwt';
-import * as bcrypt from 'bcrypt';
-import { UsersService } from '../users/users.service';
-import { handleInvariant } from '../common/errors/invariant-handler';
+import { Injectable } from '@nestjs/common'
+import { JwtService } from '@nestjs/jwt'
+import * as bcrypt from 'bcrypt'
+import { UsersService } from '../users/users.service'
+import { AppConfigService } from '../config/config.service'
+import { handleInvariant } from '../common/errors/invariant-handler'
 import {
   assertPasswordStrength,
   assertPasswordValid,
   assertUserExists,
-} from './auth.invariants';
+} from './auth.invariants'
 import {
   assertValidEmail,
   assertUserNotAlreadyRegistered,
-} from '../users/users.invariants';
+} from '../users/users.invariants'
 
 @Injectable()
 export class AuthService {
   constructor(
-    private usersService: UsersService,
-    private jwtService: JwtService,
+    private readonly usersService: UsersService,
+    private readonly jwtService: JwtService,
+    private readonly config: AppConfigService,
   ) {}
 
-  // User signup method
   async signup(email: string, password: string, name?: string) {
-    // Validate email format and password strength
     try {
       assertValidEmail(email)
       assertPasswordStrength(password)
@@ -30,7 +30,6 @@ export class AuthService {
       handleInvariant(err)
     }
 
-    // Ensure no existing user with this email
     const existing = await this.usersService.findByEmail(email)
     try {
       assertUserNotAlreadyRegistered(existing)
@@ -38,14 +37,12 @@ export class AuthService {
       handleInvariant(err)
     }
 
-    // Hash the password and create the user
-    const password_hash = await bcrypt.hash(password, 10);
-    const user = await this.usersService.createUser({ email, name, password_hash });
+    const password_hash = await bcrypt.hash(password, this.config.bcryptRounds)
+    const user = await this.usersService.createUser({ email, name, password_hash })
 
-    return this.signToken(user.id, user.email);
+    return this.signToken(user.id, user.email)
   }
 
-  // User login method
   async login(email: string, password: string) {
     const user = await this.usersService.findByEmail(email)
 
@@ -62,14 +59,13 @@ export class AuthService {
       handleInvariant(err)
     }
 
-    return this.signToken(user!.id, user!.email);
+    return this.signToken(user!.id, user!.email)
   }
 
-  // Sign a JWT token for the given user
   async signToken(userId: string, email: string) {
-    const payload = { sub: userId, email };
+    const payload = { sub: userId, email }
     return {
       access_token: await this.jwtService.signAsync(payload),
-    };
+    }
   }
 }
