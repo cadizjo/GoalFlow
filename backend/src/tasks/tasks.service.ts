@@ -22,8 +22,8 @@ import { TasksRepository } from './tasks.repo';
 import { EventLogService } from '../event-log/event-log.service';
 import { handleInvariant } from '../common/errors/invariant-handler';
 import { ScheduleBlocksQueryService } from '../scheduling/scheduling.query';
-import { PaginationDto } from 'src/common/pagination/pagination.dto';
-import { paginate } from 'src/common/pagination/paginate';
+import { PaginationDto } from '../common/pagination/pagination.dto';
+import { paginate } from '../common/pagination/paginate';
 
 @Injectable()
 export class TasksService {

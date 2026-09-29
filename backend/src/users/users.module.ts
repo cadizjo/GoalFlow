@@ -1,8 +1,8 @@
 import { Module } from '@nestjs/common';
 import { UsersRepository } from './users.repo';
-import { PrismaModule } from 'src/prisma/prisma.module';
+import { PrismaModule } from '../prisma/prisma.module';
 import { UsersController } from './users.controller';
-import { EventLogModule } from 'src/event-log/event-log.module';
+import { EventLogModule } from '../event-log/event-log.module';
 import { UsersService } from './users.service';
 
 @Module({

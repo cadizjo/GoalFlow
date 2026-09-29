@@ -6,8 +6,8 @@ import { AuthService } from './auth.service';
 import { AuthController } from './auth.controller';
 import { JwtStrategy } from './jwt.strategy';
 import { UsersModule } from '../users/users.module';
-import { AppConfigModule } from 'src/config/config.module';
-import { AppConfigService } from 'src/config/config.service';
+import { AppConfigModule } from '../config/config.module';
+import { AppConfigService } from '../config/config.service';
  
 @Module({
   imports: [

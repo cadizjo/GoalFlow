@@ -1,8 +1,8 @@
 // src/prisma/prisma.module.ts
 import { Global, Module } from '@nestjs/common';
 import { PrismaService } from './prisma.service';
-import { AppConfigModule } from 'src/config/config.module';
-import { AppConfigService } from 'src/config/config.service';
+import { AppConfigModule } from '../config/config.module';
+import { AppConfigService } from '../config/config.service';
 
 @Global() // Make the module global so that it can be injected anywhere in the application
 @Module({

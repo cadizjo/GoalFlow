@@ -1,6 +1,6 @@
 import { Injectable, OnModuleInit } from '@nestjs/common'
 import { ScheduleBlocksRepository } from './scheduling.repo'
-import { EventLogService } from 'src/event-log/event-log.service'
+import { EventLogService } from '../event-log/event-log.service'
 
 // Event handler for task-related events affecting scheduling
 @Injectable()
