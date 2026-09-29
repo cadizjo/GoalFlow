@@ -7,12 +7,7 @@ export class PrismaService
   extends PrismaClient 
   implements OnModuleInit, OnModuleDestroy
 {
-  constructor() {
-    const url = process.env.DATABASE_URL!;
-    if (!url) {
-      throw new Error('DATABASE_URL is not defined');
-    }
-
+  constructor(url: string) {
     // PrismaPg expects connection string in 'connectionString' property
     const adapter = new PrismaPg({ connectionString: url });
 
