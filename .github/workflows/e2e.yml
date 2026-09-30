@@ -38,9 +38,9 @@ jobs:
       THROTTLE_GLOBAL_LIMIT: 10000
       THROTTLE_AUTH_LIMIT: 10000
 
-      # AI service — not called during e2e tests but required by env schema
-      ANTHROPIC_API_KEY: test-key-not-real
-      AI_SERVICE_URL: http://localhost:8000
+      # # AI service — not called during e2e tests but required by env schema
+      # ANTHROPIC_API_KEY: test-key-not-real
+      # AI_SERVICE_URL: http://localhost:8000
 
       NODE_ENV: test
 
