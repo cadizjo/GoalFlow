@@ -22,6 +22,9 @@ npx prisma generate
 echo "🧱 Running migrations on test DB..."
 npx prisma migrate deploy
 
+echo "🚀 Running Unit tests..."
+npm test
+
 echo "🚀 Running E2E tests..."
 npm run test:e2e
 
