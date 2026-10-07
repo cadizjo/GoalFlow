@@ -42,6 +42,13 @@ enum ScheduleStatus {
   cancelled
 }
 
+enum BreakdownStatus {
+  idle
+  processing
+  complete
+  failed
+}
+
 //////////////////////
 // USERS & AUTH
 //////////////////////
@@ -79,6 +86,8 @@ model Goal {
   deadline    DateTime
   category    String?
   status      GoalStatus @default(active)
+  
+  breakdown_status  BreakdownStatus @default(idle)
 
   metadata    Json?
   deleted_at  DateTime?
